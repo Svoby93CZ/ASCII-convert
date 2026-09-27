@@ -6,7 +6,6 @@ name: Emulator smoke test
 on:
   workflow_dispatch:
   push:
-    branches: [ 'claude/**' ]
 
 permissions:
   contents: read

@@ -149,6 +149,16 @@ Technologie: Kotlin 2.4, Jetpack Compose (Material 3), Navigation Compose, Lifec
 DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 26
 (Android 8.0), targetSdk 37.
 
+## Testy a CI
+
+- `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, export).
+- `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore.
+- **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug
+  i release APK.
+- **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,
+  export, otočení na šířku, živá kamera, čeština a tmavý režim. Při pádu aplikace selže.
+  Spouští se ručně v záložce *Actions* nebo pushem commitu, který má v popisu `[emulator]`.
+
 ## Licence třetích stran
 
 - Písmo [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) – SIL Open Font
