@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="share_target_label">Převést na ASCII art</string>
+
+    <!-- Domů -->
+    <string name="home_subtitle">Proměň fotky v ASCII art</string>
+    <string name="action_pick_image">Vybrat fotku</string>
+    <string name="action_live_camera">Živá ASCII kamera</string>
+    <string name="action_continue">Pokračovat v úpravách</string>
+    <string name="continue_supporting">Poslední obrázek na tebe čeká</string>
+    <string name="home_tip">Tip: Obrázek můžeš do ASCII Studia poslat i z galerie nebo prohlížeče přes Sdílet.</string>
+    <string name="action_about">O aplikaci</string>
+    <string name="about_title">ASCII Studio %1$s</string>
+    <string name="about_text">Převádí fotky na textové umění přímo v telefonu. Nic se nikam neodesílá.\n\nPísmo: JetBrains Mono, SIL Open Font License 1.1\nIkony: Material Symbols, Apache License 2.0</string>
+    <string name="action_close">Zavřít</string>
+
+    <!-- Editor -->
+    <string name="editor_size">%1$d × %2$d znaků</string>
+    <string name="action_back">Zpět</string>
+    <string name="action_show_original">Zobrazit originál</string>
+    <string name="action_export">Exportovat</string>
+    <string name="action_copy">Kopírovat text</string>
+    <string name="action_more">Další možnosti</string>
+    <string name="action_reset">Obnovit výchozí nastavení</string>
+    <string name="action_fit">Přizpůsobit obrazovce</string>
+    <string name="action_retry">Zpět na začátek</string>
+    <string name="loading_image">Otevírám obrázek…</string>
+
+    <string name="tab_style">Styl</string>
+    <string name="tab_tone">Tón</string>
+    <string name="tab_colors">Barvy</string>
+
+    <string name="label_charset">Znaky</string>
+    <string name="charset_standard">Standardní</string>
+    <string name="charset_detailed">Detailní</string>
+    <string name="charset_blocks">Bloky</string>
+    <string name="charset_braille">Braille</string>
+    <string name="charset_binary">Binární</string>
+    <string name="charset_custom">Vlastní</string>
+    <string name="custom_chars_label">Vlastní znaky</string>
+    <string name="custom_chars_supporting">Automaticky se seřadí podle hustoty</string>
+    <string name="label_columns">Šířka</string>
+    <string name="value_columns">%1$d znaků</string>
+    <string name="label_edges">Obrysy</string>
+    <string name="edges_off">Vypnuto</string>
+    <string name="edges_mixed">Kombinace</string>
+    <string name="edges_only">Jen obrysy</string>
+    <string name="label_edge_sensitivity">Citlivost obrysů</string>
+
+    <string name="label_brightness">Jas</string>
+    <string name="label_contrast">Kontrast</string>
+    <string name="label_sharpness">Ostrost</string>
+    <string name="value_percent">%1$d %%</string>
+    <string name="label_auto_levels">Automatické úrovně</string>
+    <string name="auto_levels_supporting">Využije celý rozsah od tmavých po světlé tóny</string>
+    <string name="label_invert">Invertovat</string>
+    <string name="invert_supporting">Prohodí světlá a tmavá místa</string>
+    <string name="label_dithering">Rozptyl (dithering)</string>
+    <string name="dithering_none">Žádný</string>
+    <string name="dithering_floyd_steinberg">Floyd–Steinberg</string>
+    <string name="dithering_atkinson">Atkinson</string>
+    <string name="dithering_bayer">Bayer</string>
+
+    <string name="label_color_mode">Barva znaků</string>
+    <string name="color_mode_palette">Podle palety</string>
+    <string name="color_mode_photo">Barvy fotky</string>
+    <string name="label_palette">Paleta</string>
+    <string name="palette_terminal">Terminál</string>
+    <string name="palette_amber">Jantar</string>
+    <string name="palette_night">Noc</string>
+    <string name="palette_paper">Papír</string>
+    <string name="palette_ink">Inkoust</string>
+    <string name="palette_blueprint">Modrotisk</string>
+    <string name="palette_synthwave">Synthwave</string>
+
+    <!-- Export -->
+    <string name="export_title">Export</string>
+    <string name="export_copy_supporting">Vlož ho do chatu, e-mailu nebo poznámky</string>
+    <string name="export_share_text">Sdílet jako text</string>
+    <string name="export_share_image">Sdílet jako obrázek</string>
+    <string name="export_image_supporting">PNG ve vysokém rozlišení</string>
+    <string name="export_save_gallery">Uložit do galerie</string>
+    <string name="export_save_txt">Uložit jako TXT</string>
+    <string name="export_save_html">Uložit jako HTML</string>
+    <string name="export_html_supporting">Zachová barvy, otevře se v každém prohlížeči</string>
+    <string name="export_save_ansi">Uložit pro terminál (ANSI)</string>
+    <string name="export_ansi_supporting">Barevný výstup pro příkaz cat v terminálu</string>
+    <string name="chooser_share">Sdílet ASCII art</string>
+
+    <!-- Zprávy -->
+    <string name="message_copied">Zkopírováno do schránky</string>
+    <string name="message_saved_gallery">Uloženo do složky Obrázky/ASCII Studio</string>
+    <string name="message_saved_file">Soubor uložen</string>
+    <string name="message_export_failed">Export se nezdařil</string>
+    <string name="message_storage_permission">K uložení do galerie je potřeba oprávnění k úložišti</string>
+    <string name="error_load_image">Tento obrázek se nepodařilo otevřít.</string>
+    <string name="error_no_image">Není co upravovat.</string>
+
+    <!-- Kamera -->
+    <string name="camera_capture">Vyfotit</string>
+    <string name="camera_switch">Přepnout kameru</string>
+    <string name="camera_capture_failed">Fotku se nepodařilo pořídit</string>
+    <string name="camera_photo_colors">Barvy fotky</string>
+    <string name="camera_permission_title">Přístup ke kameře</string>
+    <string name="camera_permission_text">ASCII Studio používá kameru k živému převodu obrazu na ASCII art. Nic se nenahrává ani neodesílá.</string>
+    <string name="camera_permission_grant">Povolit kameru</string>
+    <string name="camera_permission_settings">Otevřít nastavení</string>
+    <string name="camera_unavailable">V tomto zařízení není dostupná žádná kamera.</string>
+</resources>
