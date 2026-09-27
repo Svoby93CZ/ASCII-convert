@@ -3,6 +3,7 @@ package cz.svoby93.asciistudio.ui.editor
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -118,6 +119,7 @@ class EditorViewModel(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
+            Log.w(TAG, "Cannot open image $uri", error)
             EditorLoadState.Failed(R.string.error_load_image)
         }
     }
@@ -167,6 +169,7 @@ class EditorViewModel(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
+                Log.w(TAG, "Export failed", error)
                 send(EditorEffect.Message(R.string.message_export_failed))
             } finally {
                 exporting.update { false }
@@ -181,6 +184,7 @@ class EditorViewModel(
     private data class ConversionRequest(val image: SourceImage, val options: AsciiOptions)
 
     private companion object {
+        const val TAG = "AsciiStudio"
         const val KEY_IMPORTED = "imported"
         const val STOP_TIMEOUT_MS = 5_000L
     }

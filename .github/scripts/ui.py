@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Helpers for the emulator smoke test.
 
-  ui.py find <window.xml> <label>   print "x y" of the node whose text or description matches
+  ui.py find <window.xml> <label>…  print "x y" of the first node whose text or description matches
   ui.py summary <window.xml>        print the texts and descriptions visible on screen
   ui.py encode <screenshot.png>     print a small JPEG of the screenshot as base64 lines
   ui.py sample <out.jpg>            write a colourful test photo (used when downloading fails)
@@ -20,7 +20,14 @@ def nodes(path):
         return []
 
 
-def find(path, label):
+def find(path, *labels):
+    """Tries the labels in order and prints the centre of the first matching node."""
+    for label in labels:
+        if find_one(path, label):
+            return
+
+
+def find_one(path, label):
     exact = partial = None
     for node in nodes(path):
         for attribute in ("text", "content-desc"):
@@ -33,11 +40,13 @@ def find(path, label):
                 partial = node
     node = exact if exact is not None else partial
     if node is None:
-        return
+        return False
     match = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", node.get("bounds", ""))
-    if match:
-        x1, y1, x2, y2 = map(int, match.groups())
-        print(f"{(x1 + x2) // 2} {(y1 + y2) // 2}")
+    if not match:
+        return False
+    x1, y1, x2, y2 = map(int, match.groups())
+    print(f"{(x1 + x2) // 2} {(y1 + y2) // 2}")
+    return True
 
 
 def summary(path):
@@ -58,8 +67,9 @@ def encode(path):
     buffer = io.BytesIO()
     image.save(buffer, "JPEG", quality=74)
     data = base64.b64encode(buffer.getvalue()).decode()
-    for start in range(0, len(data), 120):
-        print(data[start:start + 120])
+    # Long lines keep the whole walkthrough within the log window that tools can fetch.
+    for start in range(0, len(data), 4000):
+        print(data[start:start + 4000])
 
 
 def sample(path):

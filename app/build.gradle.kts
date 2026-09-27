@@ -71,6 +71,12 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    lint {
+        // Print every finding into the build log, handy when lint fails on CI.
+        textReport = true
+        textOutput = file("stdout")
+    }
 }
 
 kotlin {
