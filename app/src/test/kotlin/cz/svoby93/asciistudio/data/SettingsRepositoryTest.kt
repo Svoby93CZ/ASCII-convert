@@ -8,36 +8,36 @@ import cz.svoby93.asciistudio.engine.EdgeMode
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
-@OptIn(ExperimentalCoroutinesApi::class)
+/**
+ * Exercises the real DataStore file format. Everything runs in real time: DataStore does real
+ * file I/O and the repository's debounce is short, so the tests stay fast and deterministic.
+ */
 class SettingsRepositoryTest {
 
     @get:Rule
     val folder = TemporaryFolder()
 
     @Test
-    fun `defaults are used when nothing is stored`() = runTest {
-        val store = openStore(newFile())
-        val repository = SettingsRepository(store.dataStore, backgroundScope)
-
-        assertEquals(StudioSettings(), repository.loaded())
+    fun `defaults are used when nothing is stored`() = runBlocking {
+        session(newFile()) { repository, _ ->
+            assertEquals(StudioSettings(), repository.loaded())
+        }
     }
 
     @Test
-    fun `changes are applied immediately and survive a restart`() = runTest {
+    fun `changes are applied immediately and survive a restart`() = runBlocking {
         val file = newFile()
         val changed = StudioSettings(
             columns = 180,
@@ -51,50 +51,57 @@ class SettingsRepositoryTest {
             palette = ArtPalette.PAPER,
         )
 
-        writeThenClose(file) { changed }
+        session(file) { repository, store ->
+            repository.loaded()
+            repository.update { changed }
+            assertEquals(changed, repository.settings.value)
+            store.awaitWrite()
+        }
 
-        val repository = SettingsRepository(openStore(file).dataStore, backgroundScope)
-        assertEquals(changed, repository.loaded())
+        session(file) { repository, _ ->
+            assertEquals(changed, repository.loaded())
+        }
     }
 
     @Test
-    fun `out of range values are clamped when read`() = runTest {
+    fun `out of range values are clamped when read`() = runBlocking {
         val file = newFile()
 
-        writeThenClose(file) { it.copy(columns = 5_000) }
+        session(file) { repository, store ->
+            repository.loaded()
+            repository.update { it.copy(columns = 5_000) }
+            store.awaitWrite()
+        }
 
-        val repository = SettingsRepository(openStore(file).dataStore, backgroundScope)
-        assertEquals(StudioSettings.MAX_COLUMNS, repository.loaded().columns)
+        session(file) { repository, _ ->
+            assertEquals(StudioSettings.MAX_COLUMNS, repository.loaded().columns)
+        }
     }
 
-    /** Applies [change] through a repository, waits for the debounced write and closes the file. */
-    private suspend fun TestScope.writeThenClose(file: File, change: (StudioSettings) -> StudioSettings) {
-        val store = openStore(file)
-        val repository = SettingsRepository(store.dataStore, backgroundScope)
-        val expected = change(repository.loaded())
-
-        repository.update(change)
-        assertEquals("Changes apply in memory right away", expected, repository.settings.value)
-
-        // Let the debounce elapse (virtual time), then wait for DataStore's real file write.
-        advanceTimeBy(DEBOUNCE_MARGIN_MS)
-        store.dataStore.data.first { it.asMap().isNotEmpty() }
-        store.scope.coroutineContext.job.cancelAndJoin()
+    /** Opens [file] with a fresh DataStore and repository, runs [block], then closes both again. */
+    private suspend fun session(
+        file: File,
+        block: suspend (SettingsRepository, DataStore<Preferences>) -> Unit,
+    ) {
+        val scope = CoroutineScope(Dispatchers.IO + Job())
+        try {
+            val store = PreferenceDataStoreFactory.create(scope = scope) { file }
+            withTimeout(TIMEOUT_MS) { block(SettingsRepository(store, scope), store) }
+        } finally {
+            scope.coroutineContext.job.cancelAndJoin()
+        }
     }
 
     private suspend fun SettingsRepository.loaded(): StudioSettings = settings.filterNotNull().first()
 
-    private fun newFile() = File(folder.newFolder(), "settings.preferences_pb")
-
-    /** DataStore does real file I/O, so it gets a real dispatcher and a scope we can close. */
-    private fun openStore(file: File): OpenStore {
-        val scope = CoroutineScope(Dispatchers.IO + Job())
-        return OpenStore(PreferenceDataStoreFactory.create(scope = scope) { file }, scope)
+    /** Waits until the repository's debounced write has reached the file. */
+    private suspend fun DataStore<Preferences>.awaitWrite() {
+        data.first { it.asMap().isNotEmpty() }
     }
 
-    private class OpenStore(val dataStore: DataStore<Preferences>, val scope: CoroutineScope)
+    private fun newFile() = File(folder.newFolder(), "settings.preferences_pb")
 
     private companion object {
-        const val DEBOUNCE_MARGIN_MS = 5_000L
+        const val TIMEOUT_MS = 10_000L
     }
 }

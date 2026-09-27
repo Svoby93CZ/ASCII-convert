@@ -1,4 +1,6 @@
 import java.util.Properties
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -77,6 +79,13 @@ kotlin {
     }
 }
 
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events(TestLogEvent.FAILED)
+        exceptionFormat = TestExceptionFormat.FULL
+    }
+}
+
 dependencies {
     implementation(project(":engine"))
 
@@ -102,5 +111,4 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
 }

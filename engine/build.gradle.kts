@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 // Pure Kotlin/JVM module with the image → ASCII conversion engine.
@@ -19,6 +21,10 @@ kotlin {
 
 tasks.test {
     useJUnit()
+    testLogging {
+        events(TestLogEvent.FAILED)
+        exceptionFormat = TestExceptionFormat.FULL
+    }
 }
 
 dependencies {
