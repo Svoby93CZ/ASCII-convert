@@ -52,7 +52,7 @@
     <string name="label_sharpness">Ostrost</string>
     <string name="value_percent">%1$d %%</string>
     <string name="label_auto_levels">Automatické úrovně</string>
-    <string name="auto_levels_supporting">Využije celý rozsah od tmavé po světlou</string>
+    <string name="auto_levels_supporting">Využije celý rozsah od tmavých po světlé tóny</string>
     <string name="label_invert">Invertovat</string>
     <string name="invert_supporting">Prohodí světlá a tmavá místa</string>
     <string name="label_dithering">Rozptyl (dithering)</string>
@@ -89,7 +89,7 @@
 
     <!-- Zprávy -->
     <string name="message_copied">Zkopírováno do schránky</string>
-    <string name="message_saved_gallery">Uloženo do Obrázky/ASCII Studio</string>
+    <string name="message_saved_gallery">Uloženo do složky Obrázky/ASCII Studio</string>
     <string name="message_saved_file">Soubor uložen</string>
     <string name="message_export_failed">Export se nezdařil</string>
     <string name="message_storage_permission">K uložení do galerie je potřeba oprávnění k úložišti</string>
