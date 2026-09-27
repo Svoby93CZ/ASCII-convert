@@ -171,7 +171,8 @@ fun EditorScreen(onBack: () -> Unit) {
             }
             val panel: @Composable (Modifier) -> Unit = { modifier ->
                 val settings = state.settings
-                if (settings != null) {
+                // Without an image there is nothing to adjust.
+                if (settings != null && state.load !is EditorLoadState.Failed) {
                     ControlPanel(
                         settings = settings,
                         selectedTab = selectedTab,

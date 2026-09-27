@@ -71,11 +71,7 @@ adb shell pm grant "$PKG" android.permission.CAMERA
 adb shell settings put system accelerometer_rotation 0
 adb logcat -c
 
-echo "### Home"
-adb shell am start -W -n "$PKG/.MainActivity"
-screen 01-home 6
-alive home
-
+# The gallery photo goes in first: the photo picker indexes new media in the background.
 echo "### Put a photo into the gallery"
 curl -sSfL -o "$OUT/photo.jpg" https://raw.githubusercontent.com/opencv/opencv/4.x/samples/data/fruits.jpg \
   || python3 "$UI" sample "$OUT/photo.jpg"
@@ -87,9 +83,20 @@ ID=$(adb shell content query --uri "$MEDIA" --projection _id:_display_name \
   | grep "ascii-smoke.jpg" | sed -n 's/.*_id=\([0-9]*\).*/\1/p' | head -n 1)
 echo "MediaStore id: ${ID:-none}"
 
+echo "### Home"
+adb shell am start -W -n "$PKG/.MainActivity"
+screen 01-home 6
+alive home
+
 echo "### Pick the photo with the system photo picker"
-tap "Choose a photo" && screen 02-photo-picker 5
-tap "Photo taken" "ascii-smoke" "Image" 180 760
+tap "Choose a photo" && screen 02-photo-picker 6
+if grep -q "No photos" "$OUT/02-photo-picker.xml" 2>/dev/null; then
+  echo "(photo picker is still indexing, trying again)"
+  adb shell input keyevent KEYCODE_BACK
+  sleep 15
+  tap "Choose a photo" && screen 02-photo-picker-retry 8
+fi
+tap "Photo taken" "ascii-smoke" 180 760
 screen 03-editor 8
 alive editor
 app_log
@@ -118,7 +125,9 @@ screen 11-home-continue 4
 
 echo "### Share the photo from another app"
 if [ -n "${ID:-}" ]; then
-  adb shell am start -W -a android.intent.action.SEND -t image/jpeg \
+  # `am start` does not move EXTRA_STREAM into the ClipData like startActivity() does,
+  # so the URI is passed as data as well; otherwise the read grant would not apply.
+  adb shell am start -W -a android.intent.action.SEND -t image/jpeg -d "$MEDIA/$ID" \
     --eu android.intent.extra.STREAM "$MEDIA/$ID" --grant-read-uri-permission -n "$PKG/.MainActivity"
   screen 12-shared 8
   app_log
