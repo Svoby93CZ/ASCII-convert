@@ -64,6 +64,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -101,6 +102,7 @@ fun EditorScreen(onBack: () -> Unit) {
     }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -112,9 +114,9 @@ fun EditorScreen(onBack: () -> Unit) {
                     is EditorEffect.Launch -> try {
                         context.startActivity(effect.intent)
                     } catch (_: ActivityNotFoundException) {
-                        launch { snackbarHostState.showSnackbar(context.getString(R.string.message_export_failed)) }
+                        launch { snackbarHostState.showSnackbar(resources.getString(R.string.message_export_failed)) }
                     }
-                    is EditorEffect.Message -> launch { snackbarHostState.showSnackbar(context.getString(effect.text)) }
+                    is EditorEffect.Message -> launch { snackbarHostState.showSnackbar(resources.getString(effect.text)) }
                 }
             }
         }

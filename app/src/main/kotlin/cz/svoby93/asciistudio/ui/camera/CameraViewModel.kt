@@ -2,6 +2,7 @@ package cz.svoby93.asciistudio.ui.camera
 
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.util.Log
 import android.util.Size
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -101,6 +102,7 @@ class CameraViewModel(
                 }
 
                 override fun onError(exception: ImageCaptureException) {
+                    Log.w(TAG, "Capture failed", exception)
                     capturing.value = false
                     eventChannel.trySend(CameraEvent.CaptureFailed)
                 }
@@ -143,6 +145,8 @@ class CameraViewModel(
     }
 
     private companion object {
+        const val TAG = "AsciiStudio"
+
         /** Keeps live conversion fast enough for a smooth preview. */
         const val MAX_LIVE_COLUMNS = 160
 

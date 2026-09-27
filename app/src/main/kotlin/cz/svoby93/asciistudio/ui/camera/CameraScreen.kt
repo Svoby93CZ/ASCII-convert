@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -134,6 +135,7 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
     val lensFacing by viewModel.lensFacing.collectAsStateWithLifecycle()
     val capturing by viewModel.isCapturing.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -168,7 +170,7 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
             when (event) {
                 CameraEvent.PhotoReady -> onCaptured()
                 CameraEvent.CaptureFailed -> launch {
-                    snackbarHostState.showSnackbar(context.getString(R.string.camera_capture_failed))
+                    snackbarHostState.showSnackbar(resources.getString(R.string.camera_capture_failed))
                 }
             }
         }
