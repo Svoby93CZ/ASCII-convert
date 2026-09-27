@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,7 +42,8 @@ class ArtViewportState {
     var offset by mutableStateOf(Offset.Zero)
         internal set
 
-    val isZoomed: Boolean get() = zoom > 1.01f
+    /** Derived, so that readers recompose only when it flips, not on every zoom step. */
+    val isZoomed: Boolean by derivedStateOf { zoom > 1.01f }
 
     suspend fun reset() = animateTo(1f, Offset.Zero)
 

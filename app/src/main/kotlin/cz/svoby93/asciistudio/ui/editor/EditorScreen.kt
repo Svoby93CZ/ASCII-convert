@@ -67,11 +67,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.svoby93.asciistudio.LocalAppContainer
 import cz.svoby93.asciistudio.R
 import cz.svoby93.asciistudio.data.StudioSettings
@@ -98,15 +102,19 @@ fun EditorScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                is EditorEffect.Launch -> try {
-                    context.startActivity(effect.intent)
-                } catch (_: ActivityNotFoundException) {
-                    launch { snackbarHostState.showSnackbar(context.getString(R.string.message_export_failed)) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(viewModel, lifecycleOwner) {
+        // Effects wait in the channel while the app is in the background.
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.effects.collect { effect ->
+                when (effect) {
+                    is EditorEffect.Launch -> try {
+                        context.startActivity(effect.intent)
+                    } catch (_: ActivityNotFoundException) {
+                        launch { snackbarHostState.showSnackbar(context.getString(R.string.message_export_failed)) }
+                    }
+                    is EditorEffect.Message -> launch { snackbarHostState.showSnackbar(context.getString(effect.text)) }
                 }
-                is EditorEffect.Message -> launch { snackbarHostState.showSnackbar(context.getString(effect.text)) }
             }
         }
     }
@@ -147,6 +155,8 @@ fun EditorScreen(onBack: () -> Unit) {
                 .padding(padding),
         ) {
             val wide = maxWidth >= 600.dp && maxWidth > maxHeight
+            // In portrait the controls take a bit over a third of the screen, the preview the rest.
+            val panelHeight = (maxHeight * 0.38f).coerceIn(200.dp, 300.dp)
             val preview: @Composable (Modifier) -> Unit = { modifier ->
                 PreviewArea(
                     state = state,
@@ -165,6 +175,7 @@ fun EditorScreen(onBack: () -> Unit) {
                         onTabSelected = { selectedTab = it },
                         onChange = viewModel::updateSettings,
                         wide = wide,
+                        contentHeight = panelHeight,
                         modifier = modifier,
                     )
                 }
@@ -376,6 +387,7 @@ private fun ControlPanel(
     onTabSelected: (EditorTab) -> Unit,
     onChange: SettingsChange,
     wide: Boolean,
+    contentHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
     val shape = if (wide) RoundedCornerShape(topStart = 28.dp) else RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
@@ -398,7 +410,7 @@ private fun ControlPanel(
                 if (wide) {
                     Modifier.weight(1f)
                 } else {
-                    Modifier.height(PANEL_HEIGHT)
+                    Modifier.height(contentHeight)
                 },
             ) {
                 Box(scroll) {
@@ -422,21 +434,7 @@ private fun EditorTabs(selectedTab: EditorTab, onTabSelected: (EditorTab) -> Uni
                 selected = tab == selectedTab,
                 onClick = { onTabSelected(tab) },
                 text = { Text(stringResource(tab.label)) },
-                icon = {
-                    Icon(
-                        painterResource(
-                            when (tab) {
-                                EditorTab.STYLE -> R.drawable.ic_text_fields
-                                EditorTab.TONE -> R.drawable.ic_tune
-                                EditorTab.COLORS -> R.drawable.ic_palette
-                            },
-                        ),
-                        contentDescription = null,
-                    )
-                },
             )
         }
     }
 }
-
-private val PANEL_HEIGHT = 250.dp
