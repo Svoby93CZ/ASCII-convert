@@ -13,9 +13,9 @@ MEDIA=content://media/external/images/media
 failures=0
 mkdir -p "$OUT"
 
-dump() { # name: saves the UI tree. Slow emulators show "<app> isn't responding" dialogs; they are closed first.
-  local target
-  for _ in 1 2 3; do
+dump() { # name: saves the UI tree. An "<app> isn't responding" dialog that is still shown is closed first.
+  local target attempt
+  for attempt in 1 2 3 4; do
     adb shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1
     rm -f "$OUT/$1.xml"
     adb pull /sdcard/window.xml "$OUT/$1.xml" >/dev/null 2>&1 || return 0
@@ -24,6 +24,8 @@ dump() { # name: saves the UI tree. Slow emulators show "<app> isn't responding"
       echo "!!! ASCII Studio is not responding"
       failures=$((failures + 1))
     fi
+    # The last round only reads the screen again, so callers never search a dialog that is closed.
+    [ "$attempt" -lt 4 ] || return 0
     target=$(python3 "$UI" find "$OUT/$1.xml" "Wait")
     [ -n "$target" ] || return 0
     echo "(closing a system dialog, $(python3 "$UI" summary "$OUT/$1.xml"))"
@@ -84,6 +86,10 @@ app_log() {
 adb install -r "$APK" || exit 1
 adb shell pm grant "$PKG" android.permission.CAMERA
 adb shell settings put system accelerometer_rotation 0
+# Slow emulators keep showing "<app> isn't responding" dialogs, mostly for the launcher, and each one
+# swallows the taps and key presses meant for the app. With error dialogs hidden the system closes a
+# frozen app instead; the report at the end lists such apps and counts ASCII Studio as a problem.
+adb shell settings put global hide_error_dialogs 1
 adb logcat -c
 
 # The gallery photo goes in first: the photo picker indexes new media in the background.
@@ -193,6 +199,20 @@ adb shell input keyevent KEYCODE_BACK
 sleep 2
 tap "Živá ASCII kamera" && screen 17-camera-cs 8
 alive czech
+
+# Exit records keep every app the system closed for not responding; the log also has the ones that
+# recovered while their dialog was still shown.
+anrs=$({
+  adb shell dumpsys activity exit-info | tr -d '\r' | sed -n 's/.*process=\([^ ]*\) reason=6 (ANR).*/\1/p'
+  adb logcat -d -b system | tr -d '\r' | sed -n 's/.*ANR in \([^ ]*\).*/\1/p'
+} | sort -u)
+if [ -n "$anrs" ]; then
+  echo "Apps that stopped responding:" $anrs
+fi
+if grep -qx "$PKG" <<< "$anrs"; then
+  echo "!!! ASCII Studio stopped responding"
+  failures=$((failures + 1))
+fi
 
 adb logcat -d -b crash > "$OUT/crash.txt"
 if [ -s "$OUT/crash.txt" ]; then
