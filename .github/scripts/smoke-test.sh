@@ -13,10 +13,23 @@ MEDIA=content://media/external/images/media
 failures=0
 mkdir -p "$OUT"
 
-dump() {
-  adb shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1
-  rm -f "$OUT/$1.xml"
-  adb pull /sdcard/window.xml "$OUT/$1.xml" >/dev/null 2>&1 || true
+dump() { # name: saves the UI tree. Slow emulators show "<app> isn't responding" dialogs; they are closed first.
+  local target
+  for _ in 1 2 3; do
+    adb shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1
+    rm -f "$OUT/$1.xml"
+    adb pull /sdcard/window.xml "$OUT/$1.xml" >/dev/null 2>&1 || return 0
+    grep -q "t responding" "$OUT/$1.xml" || return 0
+    if grep -q "ASCII Studio isn" "$OUT/$1.xml"; then
+      echo "!!! ASCII Studio is not responding"
+      failures=$((failures + 1))
+    fi
+    target=$(python3 "$UI" find "$OUT/$1.xml" "Wait")
+    [ -n "$target" ] || return 0
+    echo "(closing a system dialog, $(python3 "$UI" summary "$OUT/$1.xml"))"
+    adb shell input tap $target
+    sleep 3
+  done
 }
 
 alive() {
@@ -28,8 +41,8 @@ alive() {
 
 screen() { # name [seconds to wait first]
   sleep "${2:-3}"
-  adb exec-out screencap -p > "$OUT/$1.png"
   dump "$1"
+  adb exec-out screencap -p > "$OUT/$1.png"
   echo "===== SCREEN $1 ====="
   python3 "$UI" summary "$OUT/$1.xml"
   echo "===== BEGIN IMAGE $1 ====="
