@@ -9,16 +9,21 @@
     <string name="action_continue">Pokračovat v úpravách</string>
     <string name="continue_supporting">Poslední obrázek na tebe čeká</string>
     <string name="home_tip">Tip: Obrázek můžeš do ASCII Studia poslat i z galerie nebo prohlížeče přes Sdílet.</string>
+    <string name="home_menu">Nabídka</string>
+    <string name="home_hero_status">Běží</string>
     <string name="action_about">O aplikaci</string>
     <string name="about_title">ASCII Studio %1$s</string>
     <string name="about_text">Převádí fotky na textové umění přímo v telefonu. Nic se nikam neodesílá.\n\nPísmo: JetBrains Mono, SIL Open Font License 1.1\nIkony: Material Symbols, Apache License 2.0</string>
     <string name="action_close">Zavřít</string>
     <string name="action_privacy_policy">Zásady ochrany soukromí</string>
     <string name="privacy_policy_title">Zásady ochrany soukromí</string>
-    <string name="privacy_policy_text">ASCII Studio nesbírá, neodesílá ani nesdílí žádné osobní údaje. Fotky zpracovává pouze ve vašem zařízení a nemá oprávnění k přístupu na internet.\n\nFotky\nObrázky, které vyberete nebo do aplikace nasdílíte, se převádějí na ASCII art přímo v zařízení. Kopie posledního upravovaného obrázku zůstává v soukromém úložišti aplikace, abyste mohli v úpravách pokračovat.\n\nKamera\nOprávnění ke kameře slouží jen pro živou ASCII kameru a pro pořízení fotky, o které sami požádáte. Obraz z kamery se zpracovává jen v zařízení.\n\nNastavení\nNastavení vzhledu se ukládá v zařízení a může být součástí zálohy Androidu, pokud ji máte zapnutou. Obrázky se nezálohují.\n\nExport\nVýsledky se uloží nebo předají jen tam, kam sami zvolíte. Oprávnění k zápisu do úložiště aplikace žádá jen na Androidu 9 a starším, aby mohla ukládat do galerie.\n\nAplikace neobsahuje reklamy, analytické nástroje ani sledování a nevyžaduje účet. Všechna její data smažete odinstalováním aplikace nebo vymazáním jejích dat v nastavení Androidu.\n\nKontakt na vývojáře najdete na stránce aplikace v Google Play.</string>
+    <string name="privacy_policy_text">ASCII Studio nesbírá, neodesílá ani nesdílí žádné osobní údaje. Fotky zpracovává pouze ve vašem zařízení a nemá oprávnění k přístupu na internet.\n\nFotky\nObrázky, které vyberete nebo do aplikace nasdílíte, se převádějí na ASCII art přímo v zařízení. Kopie posledního upravovaného obrázku zůstává v soukromém úložišti aplikace, abyste mohli v úpravách pokračovat.\n\nKamera\nOprávnění ke kameře slouží jen pro živou ASCII kameru a pro pořízení fotky, o které sami požádáte. Obraz z kamery se zpracovává jen v zařízení.\n\nGalerie\nASCII arty, které uložíte do galerie, zůstávají v soukromém úložišti aplikace spolu se zmenšenou kopií fotky, dokud je v galerii nesmažete.\n\nNastavení\nNastavení vzhledu se ukládá v zařízení a může být součástí zálohy Androidu, pokud ji máte zapnutou. Obrázky ani galerie se nezálohují.\n\nExport\nVýsledky se uloží nebo předají jen tam, kam sami zvolíte. Oprávnění k zápisu do úložiště aplikace žádá jen na Androidu 9 a starším, aby mohla ukládat do složky Obrázky.\n\nAplikace neobsahuje reklamy, analytické nástroje ani sledování a nevyžaduje účet. Všechna její data smažete odinstalováním aplikace nebo vymazáním jejích dat v nastavení Androidu.\n\nKontakt na vývojáře najdete na stránce aplikace v Google Play.</string>
 
     <!-- Editor -->
-    <string name="editor_size">%1$d × %2$d znaků</string>
+    <string name="editor_title">Editor</string>
+    <string name="editor_original">Originál</string>
+    <string name="editor_converting">Převádím</string>
+    <string name="editor_busy">Pracuji</string>
     <string name="action_back">Zpět</string>
     <string name="action_show_original">Zobrazit originál</string>
     <string name="action_export">Exportovat</string>
@@ -27,11 +32,17 @@
     <string name="action_reset">Obnovit výchozí nastavení</string>
     <string name="action_fit">Přizpůsobit obrazovce</string>
     <string name="action_retry">Zpět na začátek</string>
+    <string name="action_save_to_gallery">Uložit do galerie</string>
+    <string name="action_saved_in_gallery">Uloženo v galerii</string>
     <string name="loading_image">Otevírám obrázek…</string>
 
     <string name="tab_style">Styl</string>
     <string name="tab_tone">Tón</string>
     <string name="tab_colors">Barvy</string>
+    <string name="tab_background">Pozadí</string>
+    <string name="settings_title">Nastavení</string>
+    <string name="settings_show">Zobrazit nastavení</string>
+    <string name="settings_hide">Skrýt nastavení</string>
 
     <string name="label_charset">Znaky</string>
     <string name="charset_standard">Standardní</string>
@@ -85,7 +96,7 @@
     <string name="export_share_text">Sdílet jako text</string>
     <string name="export_share_image">Sdílet jako obrázek</string>
     <string name="export_image_supporting">PNG ve vysokém rozlišení</string>
-    <string name="export_save_gallery">Uložit do galerie</string>
+    <string name="export_save_pictures">Uložit do Obrázků</string>
     <string name="export_save_txt">Uložit jako TXT</string>
     <string name="export_save_html">Uložit jako HTML</string>
     <string name="export_html_supporting">Zachová barvy, otevře se v každém prohlížeči</string>
@@ -95,12 +106,27 @@
 
     <!-- Zprávy -->
     <string name="message_copied">Zkopírováno do schránky</string>
-    <string name="message_saved_gallery">Uloženo do složky Obrázky/ASCII Studio</string>
+    <string name="message_saved_pictures">Uloženo do složky Obrázky/ASCII Studio</string>
+    <string name="message_saved_to_gallery">Uloženo do galerie</string>
+    <string name="message_already_in_gallery">Už je v galerii</string>
+    <string name="message_gallery_failed">Do galerie se nepodařilo uložit</string>
     <string name="message_saved_file">Soubor uložen</string>
     <string name="message_export_failed">Export se nezdařil</string>
-    <string name="message_storage_permission">K uložení do galerie je potřeba oprávnění k úložišti</string>
+    <string name="message_storage_permission">K uložení do složky Obrázky je potřeba oprávnění k úložišti</string>
     <string name="error_load_image">Tento obrázek se nepodařilo otevřít.</string>
     <string name="error_no_image">Není co upravovat.</string>
+    <string name="error_gallery_item">Tenhle ASCII art už v galerii není.</string>
+
+    <!-- Galerie -->
+    <string name="gallery_title">Galerie</string>
+    <string name="gallery_empty">Zatím tu nic není</string>
+    <string name="gallery_empty_text">Sem si ukládáš své ASCII arty: v editoru stačí klepnout na Uložit do galerie.</string>
+    <string name="gallery_item">ASCII art, %1$s</string>
+    <string name="gallery_open">Otevřít v editoru</string>
+    <string name="gallery_delete">Smazat</string>
+    <string name="gallery_delete_title">Smazat z galerie?</string>
+    <string name="gallery_delete_text">ASCII art i jeho fotka zmizí z aplikace. Kopie uložené mimo aplikaci zůstanou.</string>
+    <string name="action_cancel">Zrušit</string>
 
     <!-- Kamera -->
     <string name="camera_capture">Vyfotit</string>
@@ -116,12 +142,8 @@
     <string name="camera_front_lens">Přední kamera</string>
     <string name="camera_live">Živě</string>
     <string name="camera_starting">Spouštím kameru</string>
-    <string name="camera_settings">Nastavení</string>
-    <string name="camera_settings_show">Zobrazit nastavení</string>
-    <string name="camera_settings_hide">Skrýt nastavení</string>
-    <string name="camera_tab_background">Pozadí</string>
-    <string name="camera_background_label">Pozadí obrazovky</string>
-    <string name="camera_background_supporting">Zdobí jen obrazovku kamery, fotka si ponechá barvy palety.</string>
+    <string name="background_label">Pozadí obrazovky</string>
+    <string name="background_supporting">Zdobí obrazovky aplikace, samotný ASCII art si ponechá barvy palety.</string>
     <string name="background_ascii">ASCII</string>
     <string name="background_rain">Déšť</string>
     <string name="background_grid">Mřížka</string>

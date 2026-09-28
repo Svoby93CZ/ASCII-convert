@@ -11,15 +11,22 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import cz.svoby93.asciistudio.ui.camera.CameraScreen
 import cz.svoby93.asciistudio.ui.editor.EditorScreen
+import cz.svoby93.asciistudio.ui.gallery.GalleryScreen
 import cz.svoby93.asciistudio.ui.home.HomeScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
 data object HomeRoute
 
-/** Opens the editor; with [imageUri] the image is imported first, otherwise the current one is edited. */
+/**
+ * Opens the editor. With [imageUri] the image is imported first, with [galleryId] the photo and the
+ * settings of a gallery item come back; otherwise the current image is edited.
+ */
 @Serializable
-data class EditorRoute(val imageUri: String? = null)
+data class EditorRoute(val imageUri: String? = null, val galleryId: String? = null)
+
+@Serializable
+data object GalleryRoute
 
 @Serializable
 data object CameraRoute
@@ -46,6 +53,13 @@ fun AsciiStudioNavHost(navController: NavHostController, modifier: Modifier = Mo
                 onImagePicked = { uri -> navController.navigate(EditorRoute(uri.toString())) },
                 onContinueEditing = { navController.navigate(EditorRoute()) },
                 onOpenCamera = { navController.navigate(CameraRoute) },
+                onOpenGallery = { navController.navigate(GalleryRoute) },
+            )
+        }
+        composable<GalleryRoute> {
+            GalleryScreen(
+                onBack = { navController.popBackStack() },
+                onOpen = { item -> navController.navigate(EditorRoute(galleryId = item.id)) },
             )
         }
         composable<EditorRoute> {

@@ -55,12 +55,6 @@ import cz.svoby93.asciistudio.engine.EdgeMode
 import cz.svoby93.asciistudio.ui.theme.MonoFontFamily
 import kotlin.math.roundToInt
 
-enum class EditorTab(@StringRes val label: Int) {
-    STYLE(R.string.tab_style),
-    TONE(R.string.tab_tone),
-    COLORS(R.string.tab_colors),
-}
-
 typealias SettingsChange = ((StudioSettings) -> StudioSettings) -> Unit
 
 /**

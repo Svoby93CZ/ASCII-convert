@@ -49,7 +49,7 @@ class SettingsRepositoryTest {
             edgeMode = EdgeMode.MIXED,
             colorMode = ColorMode.PHOTO,
             palette = ArtPalette.PAPER,
-            cameraBackground = CameraBackground.RAIN,
+            backdrop = Backdrop.RAIN,
         )
 
         session(file) { repository, store ->

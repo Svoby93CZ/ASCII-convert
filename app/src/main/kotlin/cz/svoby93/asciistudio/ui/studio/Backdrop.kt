@@ -1,4 +1,4 @@
-package cz.svoby93.asciistudio.ui.camera
+package cz.svoby93.asciistudio.ui.studio
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Spacer
@@ -23,7 +23,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cz.svoby93.asciistudio.data.CameraBackground
+import cz.svoby93.asciistudio.data.Backdrop
 import cz.svoby93.asciistudio.ui.theme.MonoFontFamily
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -33,26 +33,31 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 
 /**
- * Decoration behind the windows of the camera screen, in the colours of the palette. With
- * [animate] off, moving backgrounds show a still frame; [scale] shrinks the pattern for previews.
+ * Decoration behind the windows of the screens, in the colours of the palette. With [animate] off,
+ * moving backgrounds show a still frame; [scale] shrinks the pattern for previews.
  */
 @Composable
-fun CameraBackdrop(background: CameraBackground, animate: Boolean, modifier: Modifier = Modifier, scale: Float = 1f) {
-    val colors = LocalCameraColors.current
+fun StudioBackdrop(
+    backdrop: Backdrop,
+    modifier: Modifier = Modifier,
+    animate: Boolean = LocalAnimationsEnabled.current,
+    scale: Float = 1f,
+) {
+    val colors = LocalStudioColors.current
     // A layer of its own, so that the animated backgrounds redraw without the rest of the screen.
     val layer = modifier.graphicsLayer { }
-    when (background) {
-        CameraBackground.ASCII -> AsciiBackdrop(colors, scale, layer)
-        CameraBackground.RAIN -> RainBackdrop(colors, animate, scale, layer)
-        CameraBackground.GRID -> GridBackdrop(colors, scale, layer)
-        CameraBackground.CRT -> CrtBackdrop(colors, animate, scale, layer)
-        CameraBackground.NONE -> Spacer(layer.background(colors.desk))
+    when (backdrop) {
+        Backdrop.ASCII -> AsciiBackdrop(colors, scale, layer)
+        Backdrop.RAIN -> RainBackdrop(colors, animate, scale, layer)
+        Backdrop.GRID -> GridBackdrop(colors, scale, layer)
+        Backdrop.CRT -> CrtBackdrop(colors, animate, scale, layer)
+        Backdrop.NONE -> Spacer(layer.background(colors.desk))
     }
 }
 
 /** Glyphs that get denser towards the edges: a vignette drawn in ASCII. */
 @Composable
-private fun AsciiBackdrop(colors: CameraColors, scale: Float, modifier: Modifier) {
+private fun AsciiBackdrop(colors: StudioColors, scale: Float, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     Spacer(
         modifier.drawWithCache {
@@ -92,7 +97,7 @@ private fun AsciiBackdrop(colors: CameraColors, scale: Float, modifier: Modifier
 
 /** Streams of glyphs falling at different speeds, each with a bright head and a fading trail. */
 @Composable
-private fun RainBackdrop(colors: CameraColors, animate: Boolean, scale: Float, modifier: Modifier) {
+private fun RainBackdrop(colors: StudioColors, animate: Boolean, scale: Float, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     val clock = rememberClock(animate)
     Spacer(
@@ -141,7 +146,7 @@ private fun RainBackdrop(colors: CameraColors, animate: Boolean, scale: Float, m
 
 /** Fine lines with brighter crosses at every fourth crossing, centred on the glow. */
 @Composable
-private fun GridBackdrop(colors: CameraColors, scale: Float, modifier: Modifier) {
+private fun GridBackdrop(colors: StudioColors, scale: Float, modifier: Modifier) {
     Spacer(
         modifier.drawWithCache {
             val step = 24.dp.toPx() * scale
@@ -186,7 +191,7 @@ private fun GridBackdrop(colors: CameraColors, scale: Float, modifier: Modifier)
 
 /** Scanlines, a glowing tube and dark corners of an old monitor, with a slowly rolling bright band. */
 @Composable
-private fun CrtBackdrop(colors: CameraColors, animate: Boolean, scale: Float, modifier: Modifier) {
+private fun CrtBackdrop(colors: StudioColors, animate: Boolean, scale: Float, modifier: Modifier) {
     val clock = rememberClock(animate)
     Spacer(
         modifier.drawWithCache {
@@ -244,8 +249,8 @@ private fun rememberClock(animate: Boolean): MutableFloatState {
     return clock
 }
 
-/** The desk colour with a soft light in the middle, behind the camera window. */
-private fun DrawScope.drawDesk(colors: CameraColors, glow: Float = 1f) {
+/** The desk colour with a soft light behind the main window. */
+private fun DrawScope.drawDesk(colors: StudioColors, glow: Float = 1f) {
     drawRect(colors.desk)
     if (size.minDimension <= 0f) return
     val light = if (colors.isLight) Color.White.copy(alpha = 0.4f * glow) else colors.ink.copy(alpha = 0.1f * glow)

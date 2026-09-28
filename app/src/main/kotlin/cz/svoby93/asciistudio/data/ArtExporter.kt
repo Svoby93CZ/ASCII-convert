@@ -27,6 +27,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.floor
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.sqrt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -89,7 +91,7 @@ class ArtExporter(
     }
 
     /** Saves a PNG into Pictures/ASCII Studio. Before Android 10 the caller must hold storage permission. */
-    suspend fun saveToGallery(art: AsciiArt, style: ArtStyle) = withContext(Dispatchers.IO) {
+    suspend fun saveToPictures(art: AsciiArt, style: ArtStyle) = withContext(Dispatchers.IO) {
         val bitmap = renderBitmap(art, style)
         try {
             val name = "${baseFileName()}.png"
@@ -108,8 +110,22 @@ class ArtExporter(
         stream.bufferedWriter(Charsets.UTF_8).use { it.write(content) }
     }
 
-    /** Renders the art into a bitmap with a small margin, capped at [MAX_PIXELS]. */
-    fun renderBitmap(art: AsciiArt, style: ArtStyle): Bitmap {
+    /** A small JPEG of the art for the gallery, [PREVIEW_SIZE] pixels on its longer side at most. */
+    fun writePreview(art: AsciiArt, style: ArtStyle, stream: OutputStream) {
+        val bitmap = renderBitmap(art, style, maxSide = PREVIEW_SIZE)
+        try {
+            val written = bitmap.compress(Bitmap.CompressFormat.JPEG, PREVIEW_QUALITY, stream)
+            if (!written) throw IOException("JPEG encoding failed")
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    /**
+     * Renders the art into a bitmap with a small margin, capped at [MAX_PIXELS] and at [maxSide]
+     * pixels on the longer side.
+     */
+    fun renderBitmap(art: AsciiArt, style: ArtStyle, maxSide: Float = Float.MAX_VALUE): Bitmap {
         val renderer = AsciiRenderer(typeface)
         val margin = renderer.cellWidth * MARGIN_CELLS
         val contentWidth = renderer.width(art) + 2 * margin
@@ -117,6 +133,7 @@ class ArtExporter(
         var scale = TARGET_CELL_WIDTH_PX / renderer.cellWidth
         val pixels = contentWidth * contentHeight * scale * scale
         if (pixels > MAX_PIXELS) scale *= sqrt(MAX_PIXELS / pixels)
+        scale = min(scale, maxSide / max(contentWidth, contentHeight))
         val bitmap = Bitmap.createBitmap(
             floor(contentWidth * scale).toInt().coerceAtLeast(1),
             floor(contentHeight * scale).toInt().coerceAtLeast(1),
@@ -177,5 +194,7 @@ class ArtExporter(
         const val TARGET_CELL_WIDTH_PX = 14f
         const val MARGIN_CELLS = 2f
         const val MAX_PIXELS = 8_000_000f
+        const val PREVIEW_SIZE = 720f
+        const val PREVIEW_QUALITY = 88
     }
 }

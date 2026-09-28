@@ -1,8 +1,9 @@
-package cz.svoby93.asciistudio.ui.camera
+package cz.svoby93.asciistudio.ui.studio
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -19,11 +20,11 @@ import cz.svoby93.asciistudio.data.ArtPalette
 import cz.svoby93.asciistudio.ui.theme.MonoFontFamily
 
 /**
- * Colours of the camera screen. All of them come from the art palette, so the windows, controls
- * and background change together with the art: green for Terminal, orange for Amber and so on.
+ * Colours of the whole app. All of them come from the art palette, so the windows, controls and
+ * background change together with the art: green for Terminal, orange for Amber and so on.
  */
 @Immutable
-data class CameraColors(
+data class StudioColors(
     /** Glyph colour of the palette: borders, texts and accents. */
     val ink: Color,
     /** Background colour of the palette, used inside the windows. */
@@ -36,14 +37,17 @@ data class CameraColors(
     fun tint(amount: Float): Color = lerp(paper, ink, amount)
 }
 
-fun ArtPalette.cameraColors(): CameraColors {
+fun ArtPalette.studioColors(): StudioColors {
     val ink = Color(foreground)
     val paper = Color(background)
     val desk = if (isLight) lerp(paper, ink, 0.12f) else lerp(paper, Color.Black, 0.5f)
-    return CameraColors(ink = ink, paper = paper, desk = desk, isLight = isLight)
+    return StudioColors(ink = ink, paper = paper, desk = desk, isLight = isLight)
 }
 
-val LocalCameraColors = staticCompositionLocalOf { ArtPalette.TERMINAL.cameraColors() }
+val LocalStudioColors = staticCompositionLocalOf { ArtPalette.TERMINAL.studioColors() }
+
+/** False when the system "remove animations" setting is on: moving backgrounds and blinking stop. */
+val LocalAnimationsEnabled = staticCompositionLocalOf { true }
 
 /** Small capitals of window titles and tabs. */
 internal val TerminalLabelStyle = TextStyle(
@@ -55,26 +59,37 @@ internal val TerminalLabelStyle = TextStyle(
 )
 
 /**
- * Material theme made of the palette colours, so that sliders, chips and switches of the camera
- * settings match the art as well.
+ * Material theme made of the palette colours, so that sliders, chips and switches match the art
+ * as well. Headings use JetBrains Mono, like the art itself.
  */
 @Composable
-fun CameraTheme(colors: CameraColors, content: @Composable () -> Unit) {
+fun StudioTheme(colors: StudioColors, animate: Boolean = true, content: @Composable () -> Unit) {
     val colorScheme = remember(colors) { colors.colorScheme() }
-    val base = MaterialTheme.typography
-    val typography = remember(base) {
-        base.copy(titleSmall = base.titleSmall.copy(fontFamily = MonoFontFamily, fontWeight = FontWeight.Bold))
-    }
-    MaterialTheme(colorScheme = colorScheme, typography = typography) {
+    MaterialTheme(colorScheme = colorScheme, typography = StudioTypography) {
         CompositionLocalProvider(
-            LocalCameraColors provides colors,
+            LocalStudioColors provides colors,
+            LocalAnimationsEnabled provides animate,
             LocalContentColor provides colors.ink,
             content = content,
         )
     }
 }
 
-private fun CameraColors.colorScheme(): ColorScheme {
+private val StudioTypography: Typography = Typography().let { base ->
+    fun TextStyle.mono() = copy(fontFamily = MonoFontFamily, fontWeight = FontWeight.Bold)
+    base.copy(
+        displayLarge = base.displayLarge.mono(),
+        displayMedium = base.displayMedium.mono(),
+        displaySmall = base.displaySmall.mono(),
+        headlineLarge = base.headlineLarge.mono(),
+        headlineMedium = base.headlineMedium.mono(),
+        headlineSmall = base.headlineSmall.mono(),
+        titleLarge = base.titleLarge.mono(),
+        titleSmall = base.titleSmall.mono(),
+    )
+}
+
+private fun StudioColors.colorScheme(): ColorScheme {
     val base = if (isLight) lightColorScheme() else darkColorScheme()
     return base.copy(
         primary = ink,

@@ -14,6 +14,7 @@ import androidx.annotation.RequiresApi
 import cz.svoby93.asciistudio.engine.PixelImage
 import java.io.File
 import java.io.IOException
+import java.io.OutputStream
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -34,6 +35,16 @@ class SourceImage(val bitmap: Bitmap) {
             bitmap.getPixels(it, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
         },
     )
+
+    /** Writes the picture compactly: PNG keeps transparency, JPEG keeps big photos small and quick to write. */
+    fun writeTo(stream: OutputStream) {
+        val format = if (bitmap.hasAlpha()) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
+        if (!bitmap.compress(format, JPEG_QUALITY, stream)) throw IOException("Cannot encode the image")
+    }
+
+    private companion object {
+        const val JPEG_QUALITY = 92
+    }
 }
 
 /**
@@ -69,7 +80,7 @@ class ImageRepository(context: Context) {
     private fun replace(bitmap: Bitmap): SourceImage {
         val image = SourceImage(bitmap)
         current.value = image
-        save(bitmap)
+        save(image)
         return image
     }
 
@@ -131,15 +142,11 @@ class ImageRepository(context: Context) {
 
     private fun open(uri: Uri) = resolver.openInputStream(uri) ?: throw IOException("Cannot open $uri")
 
-    private fun save(bitmap: Bitmap) {
+    private fun save(image: SourceImage) {
         try {
             workFile.parentFile?.mkdirs()
             val temp = File(workFile.parentFile, "source.tmp")
-            temp.outputStream().use { out ->
-                // PNG keeps transparency, JPEG keeps big photos small and quick to write.
-                val format = if (bitmap.hasAlpha()) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG
-                bitmap.compress(format, JPEG_QUALITY, out)
-            }
+            temp.outputStream().use(image::writeTo)
             if (!temp.renameTo(workFile)) temp.delete()
         } catch (_: IOException) {
             // Without the copy editing still works, it just cannot survive a process restart.
@@ -166,6 +173,5 @@ class ImageRepository(context: Context) {
     private companion object {
         /** Plenty for 300 columns of text and 600 Braille dots, while keeping memory in check. */
         const val MAX_DIMENSION = 1600
-        const val JPEG_QUALITY = 92
     }
 }

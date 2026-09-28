@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Compose draws the whole UI; the window theme only provides the background colour. -->
-    <style name="Theme.AsciiStudio" parent="android:Theme.Material.Light.NoActionBar">
+    <!-- Compose draws the whole UI in the colours of the art palette; the window theme only
+         provides the background colour until then. -->
+    <style name="Theme.AsciiStudio" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/window_background</item>
     </style>
 

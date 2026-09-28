@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.annotation.StringRes
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -13,6 +12,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import cz.svoby93.asciistudio.R
 import cz.svoby93.asciistudio.data.ArtExporter
+import cz.svoby93.asciistudio.data.GalleryItem
+import cz.svoby93.asciistudio.data.GalleryRepository
 import cz.svoby93.asciistudio.data.ImageRepository
 import cz.svoby93.asciistudio.data.SettingsRepository
 import cz.svoby93.asciistudio.data.SourceImage
@@ -35,29 +36,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-sealed interface EditorLoadState {
-    data object Loading : EditorLoadState
-    class Ready(val image: SourceImage) : EditorLoadState {
-        val preview: ImageBitmap = image.bitmap.asImageBitmap()
-    }
-    data class Failed(@StringRes val message: Int) : EditorLoadState
-}
-
-data class EditorUiState(
-    val load: EditorLoadState = EditorLoadState.Loading,
-    val settings: StudioSettings? = null,
-    val art: AsciiArt? = null,
-    val isExporting: Boolean = false,
-)
 
 sealed interface EditorEffect {
     /** Start an activity, e.g. the share sheet. */
@@ -73,17 +59,22 @@ class EditorViewModel(
     private val settingsRepository: SettingsRepository,
     private val optionsFactory: AsciiOptionsFactory,
     private val exporter: ArtExporter,
+    private val gallery: GalleryRepository,
 ) : ViewModel() {
 
     private val loadState = MutableStateFlow<EditorLoadState>(EditorLoadState.Loading)
-    private val exporting = MutableStateFlow(false)
+    private val source = MutableStateFlow<SourceImage?>(null)
+    private val busy = MutableStateFlow(false)
     private val effectChannel = Channel<EditorEffect>(Channel.BUFFERED)
+
+    /** The gallery item last saved or opened for this photo; it survives a process restart. */
+    private val savedItemId: StateFlow<String?> = savedStateHandle.getStateFlow(KEY_SAVED_ITEM, null)
 
     val effects: Flow<EditorEffect> = effectChannel.receiveAsFlow()
 
     /** Re-converts whenever the image or a setting that affects the glyphs changes. */
     private val art: StateFlow<AsciiArt?> = combine(
-        loadState.mapNotNull { (it as? EditorLoadState.Ready)?.image },
+        source.filterNotNull(),
         settingsRepository.settings.filterNotNull(),
     ) { image, settings -> ConversionRequest(image, optionsFactory.create(settings)) }
         // Palette tweaks only change colours, so they do not trigger a new conversion.
@@ -92,41 +83,67 @@ class EditorViewModel(
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
+    private val saved: Flow<Boolean> = combine(
+        savedItemId,
+        gallery.items,
+        settingsRepository.settings,
+    ) { id, items, settings -> isSaved(items?.firstOrNull { it.id == id }, settings) }
+
     val uiState: StateFlow<EditorUiState> = combine(
         loadState,
         settingsRepository.settings,
         art,
-        exporting,
-    ) { load, settings, art, exporting -> EditorUiState(load, settings, art, exporting) }
+        busy,
+        saved,
+    ) { load, settings, art, busy, saved -> EditorUiState(load, settings, art, busy, saved) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), EditorUiState())
 
     init {
-        viewModelScope.launch { loadState.value = load() }
+        viewModelScope.launch {
+            loadState.value = load()
+            gallery.load()
+        }
     }
 
     private suspend fun load(): EditorLoadState {
-        val uri = savedStateHandle.toRoute<EditorRoute>().imageUri
-        // After a process restart the picked image is restored from the saved copy instead,
-        // because the permission to read the original URI is gone by then.
-        val importPending = uri != null && savedStateHandle.get<Boolean>(KEY_IMPORTED) != true
+        val route = savedStateHandle.toRoute<EditorRoute>()
+        // After a process restart the image is restored from the saved copy instead, because the
+        // permission to read the original URI is gone by then.
+        val importPending = savedStateHandle.get<Boolean>(KEY_IMPORTED) != true
         return try {
-            val image = if (importPending) {
-                images.importImage(Uri.parse(uri)).also { savedStateHandle[KEY_IMPORTED] = true }
-            } else {
-                images.restore()
+            val image = when {
+                importPending && route.galleryId != null -> openFromGallery(route.galleryId)
+                    ?: return EditorLoadState.Failed(R.string.error_gallery_item)
+                importPending && route.imageUri != null -> images.importImage(Uri.parse(route.imageUri))
+                else -> images.restore()
             }
-            if (image != null) EditorLoadState.Ready(image) else EditorLoadState.Failed(R.string.error_no_image)
+            savedStateHandle[KEY_IMPORTED] = true
+            if (image == null) return EditorLoadState.Failed(R.string.error_no_image)
+            source.value = image
+            EditorLoadState.Ready(image.bitmap.asImageBitmap())
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            Log.w(TAG, "Cannot open image $uri", error)
+            Log.w(TAG, "Cannot open image ${route.imageUri ?: route.galleryId}", error)
             EditorLoadState.Failed(R.string.error_load_image)
         }
     }
 
+    /** Makes the photo of a gallery item the current image and brings back its settings. */
+    private suspend fun openFromGallery(id: String): SourceImage? {
+        val item = gallery.find(id) ?: return null
+        val image = images.importImage(Uri.fromFile(item.source))
+        // Updates are ignored until the stored settings have been read.
+        settingsRepository.settings.filterNotNull().first()
+        // The background decorates the app, it is not part of the art.
+        settingsRepository.update { current -> item.settings.copy(backdrop = current.backdrop) }
+        savedStateHandle[KEY_SAVED_ITEM] = item.id
+        return image
+    }
+
     fun updateSettings(transform: (StudioSettings) -> StudioSettings) = settingsRepository.update(transform)
 
-    fun resetSettings() = settingsRepository.update { StudioSettings() }
+    fun resetSettings() = settingsRepository.update { StudioSettings(backdrop = it.backdrop) }
 
     fun copyText() {
         val art = art.value ?: return
@@ -144,9 +161,32 @@ class EditorViewModel(
         send(EditorEffect.Launch(exporter.shareImageIntent(art, settings.artStyle())))
     }
 
-    fun saveToGallery() = export { art, settings ->
-        exporter.saveToGallery(art, settings.artStyle())
-        send(EditorEffect.Message(R.string.message_saved_gallery))
+    fun saveToPictures() = export { art, settings ->
+        exporter.saveToPictures(art, settings.artStyle())
+        send(EditorEffect.Message(R.string.message_saved_pictures))
+    }
+
+    /** Keeps the photo and the current settings in the gallery, unless they are there already. */
+    fun saveToGallery() {
+        // A second tap while the first save runs would add the same art twice.
+        if (busy.value) return
+        val image = source.value ?: return
+        val savedItem = gallery.items.value?.firstOrNull { it.id == savedItemId.value }
+        if (isSaved(savedItem, settingsRepository.settings.value)) {
+            send(EditorEffect.Message(R.string.message_already_in_gallery))
+            return
+        }
+        export(failure = R.string.message_gallery_failed) { art, settings ->
+            val item = gallery.add(
+                settings = settings,
+                columns = art.columns,
+                rows = art.rows,
+                writeSource = image::writeTo,
+                writePreview = { stream -> exporter.writePreview(art, settings.artStyle(), stream) },
+            )
+            savedStateHandle[KEY_SAVED_ITEM] = item.id
+            send(EditorEffect.Message(R.string.message_saved_to_gallery))
+        }
     }
 
     fun suggestedFileName(format: TextFormat): String = exporter.suggestedFileName(format)
@@ -159,23 +199,29 @@ class EditorViewModel(
 
     fun showMessage(@StringRes text: Int) = send(EditorEffect.Message(text))
 
-    private fun export(block: suspend (AsciiArt, StudioSettings) -> Unit) {
+    private fun export(
+        @StringRes failure: Int = R.string.message_export_failed,
+        block: suspend (AsciiArt, StudioSettings) -> Unit,
+    ) {
         val art = art.value ?: return
         val settings = settingsRepository.settings.value ?: return
         viewModelScope.launch {
-            exporting.update { true }
+            busy.update { true }
             try {
                 block(art, settings)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
                 Log.w(TAG, "Export failed", error)
-                send(EditorEffect.Message(R.string.message_export_failed))
+                send(EditorEffect.Message(failure))
             } finally {
-                exporting.update { false }
+                busy.update { false }
             }
         }
     }
+
+    private fun isSaved(item: GalleryItem?, settings: StudioSettings?): Boolean =
+        item != null && settings != null && item.settings.sameArtAs(settings)
 
     private fun send(effect: EditorEffect) {
         effectChannel.trySend(effect)
@@ -186,6 +232,7 @@ class EditorViewModel(
     private companion object {
         const val TAG = "AsciiStudio"
         const val KEY_IMPORTED = "imported"
+        const val KEY_SAVED_ITEM = "savedItem"
         const val STOP_TIMEOUT_MS = 5_000L
     }
 }

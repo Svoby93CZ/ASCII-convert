@@ -1,4 +1,4 @@
-package cz.svoby93.asciistudio.ui.camera
+package cz.svoby93.asciistudio.ui.studio
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cz.svoby93.asciistudio.R
-import cz.svoby93.asciistudio.data.CameraBackground
+import cz.svoby93.asciistudio.data.Backdrop
 import cz.svoby93.asciistudio.data.CharsetPreset
 import cz.svoby93.asciistudio.data.StudioSettings
 import cz.svoby93.asciistudio.ui.editor.ColorControls
@@ -53,31 +53,35 @@ import cz.svoby93.asciistudio.ui.editor.SettingsChange
 import cz.svoby93.asciistudio.ui.editor.StyleControls
 import cz.svoby93.asciistudio.ui.editor.ToneControls
 
-enum class CameraTab(@StringRes val label: Int) {
+enum class SettingsTab(@StringRes val label: Int) {
     STYLE(R.string.tab_style),
     COLORS(R.string.tab_colors),
     TONE(R.string.tab_tone),
-    BACKGROUND(R.string.camera_tab_background),
+    BACKGROUND(R.string.tab_background),
 }
 
 /**
- * The camera settings in a [TerminalFrame]: the controls of the editor plus the background of the
- * camera screen. Changes apply to the live preview and to the editor alike.
+ * The settings of the art in a [TerminalFrame], with tabs, plus the background of the screens.
+ * The editor and the live camera share them, so changes carry over from one to the other.
  *
- * @param onExpandedChange lets the user fold the controls away to enlarge the preview; without it
- *   the controls are always shown.
+ * @param onExpandedChange lets the user fold the controls away to enlarge the art; without it the
+ *   controls are always shown.
  * @param contentHeight height of the controls, or null to fill the height of the window.
+ * @param charsets the character sets to offer, see [StyleControls].
+ * @param columnsRange the widths to offer, see [StyleControls].
  */
 @Composable
-fun CameraSettingsWindow(
+fun SettingsWindow(
     settings: StudioSettings,
     onChange: SettingsChange,
-    tab: CameraTab,
-    onTabChange: (CameraTab) -> Unit,
+    tab: SettingsTab,
+    onTabChange: (SettingsTab) -> Unit,
     expanded: Boolean,
     onExpandedChange: ((Boolean) -> Unit)?,
     contentHeight: Dp?,
     modifier: Modifier = Modifier,
+    charsets: List<CharsetPreset> = CharsetPreset.entries,
+    columnsRange: IntRange = StudioSettings.MIN_COLUMNS..StudioSettings.MAX_COLUMNS,
 ) {
     val status: (@Composable RowScope.() -> Unit)? = if (onExpandedChange != null) {
         { CollapseToggle(expanded = expanded, onClick = { onExpandedChange(!expanded) }) }
@@ -85,7 +89,7 @@ fun CameraSettingsWindow(
         null
     }
     TerminalFrame(
-        title = stringResource(R.string.camera_settings),
+        title = stringResource(R.string.settings_title),
         status = status,
         modifier = modifier,
     ) {
@@ -104,7 +108,7 @@ fun CameraSettingsWindow(
             ) {
                 // Every tab starts at its top.
                 val scroll = key(tab) { rememberScrollState() }
-                val paper = LocalCameraColors.current.paper
+                val paper = LocalStudioColors.current.paper
                 Box(
                     (if (contentHeight == null) Modifier.fillMaxHeight() else Modifier.height(contentHeight))
                         .fillMaxWidth()
@@ -123,15 +127,10 @@ fun CameraSettingsWindow(
                         .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
                 ) {
                     when (tab) {
-                        CameraTab.STYLE -> StyleControls(
-                            settings = settings,
-                            onChange = onChange,
-                            charsets = LiveCharsets,
-                            columnsRange = StudioSettings.MIN_COLUMNS..StudioSettings.MAX_LIVE_COLUMNS,
-                        )
-                        CameraTab.COLORS -> ColorControls(settings, onChange)
-                        CameraTab.TONE -> ToneControls(settings, onChange)
-                        CameraTab.BACKGROUND -> BackgroundControls(settings, onChange)
+                        SettingsTab.STYLE -> StyleControls(settings, onChange, charsets, columnsRange)
+                        SettingsTab.COLORS -> ColorControls(settings, onChange)
+                        SettingsTab.TONE -> ToneControls(settings, onChange)
+                        SettingsTab.BACKGROUND -> BackgroundControls(settings, onChange)
                     }
                 }
             }
@@ -139,13 +138,10 @@ fun CameraSettingsWindow(
     }
 }
 
-/** Custom characters are edited in the editor; a keyboard would cover the camera. */
-private val LiveCharsets = CharsetPreset.entries.filter { it != CharsetPreset.CUSTOM }
-
 /** Tabs in inverse video, like the selection of a terminal program. */
 @Composable
-private fun TabStrip(selected: CameraTab, onSelect: (CameraTab) -> Unit) {
-    val colors = LocalCameraColors.current
+private fun TabStrip(selected: SettingsTab, onSelect: (SettingsTab) -> Unit) {
+    val colors = LocalStudioColors.current
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -155,7 +151,7 @@ private fun TabStrip(selected: CameraTab, onSelect: (CameraTab) -> Unit) {
             .selectableGroup()
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
-        CameraTab.entries.forEach { tab ->
+        SettingsTab.entries.forEach { tab ->
             val isSelected = tab == selected
             Box(
                 contentAlignment = Alignment.Center,
@@ -180,7 +176,7 @@ private fun TabStrip(selected: CameraTab, onSelect: (CameraTab) -> Unit) {
 /** A `[-]` box in the border that folds the settings away, like the buttons of old text windows. */
 @Composable
 private fun CollapseToggle(expanded: Boolean, onClick: () -> Unit) {
-    val description = stringResource(if (expanded) R.string.camera_settings_hide else R.string.camera_settings_show)
+    val description = stringResource(if (expanded) R.string.settings_hide else R.string.settings_show)
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -196,21 +192,21 @@ private fun CollapseToggle(expanded: Boolean, onClick: () -> Unit) {
 @Composable
 private fun BackgroundControls(settings: StudioSettings, onChange: SettingsChange) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        SectionLabel(R.string.camera_background_label)
+        SectionLabel(R.string.background_label)
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.horizontalScroll(rememberScrollState()),
         ) {
-            CameraBackground.entries.forEach { background ->
+            Backdrop.entries.forEach { backdrop ->
                 BackgroundTile(
-                    background = background,
-                    selected = settings.cameraBackground == background,
-                    onClick = { onChange { it.copy(cameraBackground = background) } },
+                    backdrop = backdrop,
+                    selected = settings.backdrop == backdrop,
+                    onClick = { onChange { it.copy(backdrop = backdrop) } },
                 )
             }
         }
         Text(
-            stringResource(R.string.camera_background_supporting),
+            stringResource(R.string.background_supporting),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -219,9 +215,9 @@ private fun BackgroundControls(settings: StudioSettings, onChange: SettingsChang
 
 /** A small still preview of a background, in the style of the palette swatches. */
 @Composable
-private fun BackgroundTile(background: CameraBackground, selected: Boolean, onClick: () -> Unit) {
-    val colors = LocalCameraColors.current
-    val name = stringResource(background.label)
+private fun BackgroundTile(backdrop: Backdrop, selected: Boolean, onClick: () -> Unit) {
+    val colors = LocalStudioColors.current
+    val name = stringResource(backdrop.label)
     val shape = RoundedCornerShape(12.dp)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -240,8 +236,8 @@ private fun BackgroundTile(background: CameraBackground, selected: Boolean, onCl
                 .clip(shape)
                 .border(if (selected) 3.dp else 1.dp, if (selected) colors.ink else colors.tint(0.3f), shape),
         ) {
-            CameraBackdrop(background = background, animate = false, scale = 0.5f, modifier = Modifier.matchParentSize())
-            // A tiny camera window shows that the pattern goes behind the windows.
+            StudioBackdrop(backdrop, Modifier.matchParentSize(), animate = false, scale = 0.5f)
+            // A tiny window shows that the pattern goes behind the windows.
             Box(
                 Modifier
                     .size(width = 30.dp, height = 36.dp)
