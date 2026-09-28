@@ -152,6 +152,8 @@ Dobré vědět:
   nainstalovat oba.
 - Aplikaci z Google Play podepisuje Google svým klíčem (Play App Signing). Verzi nainstalovanou
   z APK proto před instalací z Google Play odinstalujte.
+- Texty a grafika pro záznam v obchodu, zásady ochrany soukromí a odpovědi do Play Console jsou
+  ve složce [`store/`](store/README.md).
 
 ## Architektura
 
