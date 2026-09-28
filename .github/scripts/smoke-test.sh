@@ -3,7 +3,9 @@
 # screenshot (base64 JPEG between BEGIN/END IMAGE markers) so the run can be reviewed from the log.
 set -u
 
-PKG=cz.svoby93.asciistudio
+PKG=com.asciistudio
+# The application ID differs from the code namespace, so the activity needs its full class name.
+ACTIVITY="$PKG/cz.svoby93.asciistudio.MainActivity"
 APK=app/build/outputs/apk/debug/app-debug.apk
 OUT=smoke
 UI=.github/scripts/ui.py
@@ -11,10 +13,23 @@ MEDIA=content://media/external/images/media
 failures=0
 mkdir -p "$OUT"
 
-dump() {
-  adb shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1
-  rm -f "$OUT/$1.xml"
-  adb pull /sdcard/window.xml "$OUT/$1.xml" >/dev/null 2>&1 || true
+dump() { # name: saves the UI tree. Slow emulators show "<app> isn't responding" dialogs; they are closed first.
+  local target
+  for _ in 1 2 3; do
+    adb shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1
+    rm -f "$OUT/$1.xml"
+    adb pull /sdcard/window.xml "$OUT/$1.xml" >/dev/null 2>&1 || return 0
+    grep -q "t responding" "$OUT/$1.xml" || return 0
+    if grep -q "ASCII Studio isn" "$OUT/$1.xml"; then
+      echo "!!! ASCII Studio is not responding"
+      failures=$((failures + 1))
+    fi
+    target=$(python3 "$UI" find "$OUT/$1.xml" "Wait")
+    [ -n "$target" ] || return 0
+    echo "(closing a system dialog, $(python3 "$UI" summary "$OUT/$1.xml"))"
+    adb shell input tap $target
+    sleep 3
+  done
 }
 
 alive() {
@@ -26,8 +41,8 @@ alive() {
 
 screen() { # name [seconds to wait first]
   sleep "${2:-3}"
-  adb exec-out screencap -p > "$OUT/$1.png"
   dump "$1"
+  adb exec-out screencap -p > "$OUT/$1.png"
   echo "===== SCREEN $1 ====="
   python3 "$UI" summary "$OUT/$1.xml"
   echo "===== BEGIN IMAGE $1 ====="
@@ -84,7 +99,7 @@ ID=$(adb shell content query --uri "$MEDIA" --projection _id:_display_name \
 echo "MediaStore id: ${ID:-none}"
 
 echo "### Home"
-adb shell am start -W -n "$PKG/.MainActivity"
+adb shell am start -W -n "$ACTIVITY"
 screen 01-home 6
 alive home
 
@@ -118,7 +133,7 @@ fi
 # `am start` does not move EXTRA_STREAM into the ClipData like startActivity() does,
 # so the URI is passed as data as well; otherwise the read grant would not apply.
 adb shell am start -W -a android.intent.action.SEND -t image/jpeg -d "$MEDIA/$ID" \
-  --eu android.intent.extra.STREAM "$MEDIA/$ID" --grant-read-uri-permission -n "$PKG/.MainActivity"
+  --eu android.intent.extra.STREAM "$MEDIA/$ID" --grant-read-uri-permission -n "$ACTIVITY"
 screen 04-editor 8
 alive editor
 app_log
@@ -146,7 +161,7 @@ adb shell input keyevent KEYCODE_BACK
 screen 12-home-continue 4
 
 echo "### Live camera"
-adb shell am start -W -n "$PKG/.MainActivity"
+adb shell am start -W -n "$ACTIVITY"
 sleep 2
 tap "Live ASCII camera" && screen 13-camera 10
 tap "Take photo" 540 2140
@@ -159,7 +174,7 @@ echo "### Czech and dark theme"
 adb shell cmd uimode night yes
 adb shell cmd locale set-app-locales "$PKG" --locales cs
 adb shell am force-stop "$PKG"
-adb shell am start -W -n "$PKG/.MainActivity"
+adb shell am start -W -n "$ACTIVITY"
 screen 15-home-cs-dark 6
 tap "O aplikaci" && tap "Zásady ochrany soukromí" && screen 15-privacy-policy-cs 2
 adb shell input keyevent KEYCODE_BACK

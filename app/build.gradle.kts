@@ -26,7 +26,8 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "cz.svoby93.asciistudio"
+        // Fixed by the app's Google Play Console entry and can never change. The code keeps its namespace.
+        applicationId = "com.asciistudio"
         minSdk = 26
         targetSdk = 37
         // CI passes its run number, so every bundle uploaded to Google Play has a higher version code.

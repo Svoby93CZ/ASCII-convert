@@ -145,6 +145,8 @@ Actions ho sestaví samy, stačí jim jednou předat klíč:
 
 Dobré vědět:
 
+- Název balíčku aplikace (`applicationId`) je `com.asciistudio`. Je svázaný se záznamem aplikace
+  v Play Console, takže ho už nejde změnit.
 - `versionCode` je číslo běhu CI, takže každý nový build jde nahrát. Verzi, kterou vidí
   uživatelé (`versionName`), změníte v `app/build.gradle.kts`.
 - Bundle obsahuje vždy celou češtinu i angličtinu, dělení podle jazyků je vypnuté. Jazyk
