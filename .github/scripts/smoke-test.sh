@@ -88,6 +88,11 @@ adb shell am start -W -n "$PKG/.MainActivity"
 screen 01-home 6
 alive home
 
+echo "### About and privacy policy"
+tap "About" && tap "Privacy policy" && screen 01-privacy-policy 2
+adb shell input keyevent KEYCODE_BACK
+sleep 1
+
 echo "### System photo picker"
 tap "Choose a photo" && screen 02-photo-picker 6
 if grep -q "No photos" "$OUT/02-photo-picker.xml" 2>/dev/null; then
@@ -156,6 +161,9 @@ adb shell cmd locale set-app-locales "$PKG" --locales cs
 adb shell am force-stop "$PKG"
 adb shell am start -W -n "$PKG/.MainActivity"
 screen 15-home-cs-dark 6
+tap "O aplikaci" && tap "Zásady ochrany soukromí" && screen 15-privacy-policy-cs 2
+adb shell input keyevent KEYCODE_BACK
+sleep 1
 tap "Pokračovat v úpravách" && screen 16-editor-cs-dark 6
 alive czech
 
