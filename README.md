@@ -68,9 +68,10 @@ sudo apt install adb
 adb install -r app-release.apk
 ```
 
-Debug i release buildy podepisuje stejný sdílený ladicí klíč (`app/debug.keystore`), takže
-novější verze jde vždy nainstalovat přes starší. Pro vydání na Google Play použijte vlastní
-klíč (viz níže).
+Debug buildy podepisuje sdílený ladicí klíč (`app/debug.keystore`). Release buildy podepisuje
+váš klíč pro Google Play, pokud je nastavený (viz *Vydání na Google Play* níže), jinak také
+ladicí klíč. Novější verze podepsaná stejným klíčem jde vždy nainstalovat přes starší. Po změně
+klíče je potřeba starou verzi nejdřív odinstalovat.
 
 ## Sestavení ze zdrojových kódů
 
@@ -100,20 +101,57 @@ Tipy pro notebook s 8 GB RAM:
 
 ### Podpis vlastním klíčem
 
-Vytvořte klíč a soubor `keystore.properties` v kořeni projektu (je v `.gitignore`):
-
-```bash
-keytool -genkeypair -v -keystore release.jks -alias ascii-studio -keyalg RSA -keysize 4096 -validity 10000
-```
+Na vlastním počítači použijte stejný klíč jako pro Google Play (jak ho vytvořit, popisuje další
+kapitola). V kořeni projektu vytvořte soubor `keystore.properties` (je v `.gitignore`):
 
 ```properties
-storeFile=release.jks
+storeFile=/home/<uživatel>/ascii-studio-klic/upload.jks
 storePassword=…
 keyAlias=ascii-studio
-keyPassword=…
 ```
 
-`./gradlew :app:assembleRelease` pak podepíše APK tímto klíčem.
+`./gradlew :app:bundleRelease` pak vytvoří podepsaný bundle
+`app/build/outputs/bundle/release/app-release.aab` a `./gradlew :app:assembleRelease` podepsané
+APK. Pokud má klíč jiné heslo než úložiště, přidejte ještě řádek `keyPassword=…`.
+
+## Vydání na Google Play
+
+Google Play přijímá Android App Bundle (`.aab`) podepsaný vaším klíčem pro nahrávání. GitHub
+Actions ho sestaví samy, stačí jim jednou předat klíč:
+
+1. Na notebooku vytvořte klíč ve složce mimo projekt. Stačí k tomu JDK
+   (`sudo apt install openjdk-21-jdk`):
+
+   ```bash
+   mkdir -p ~/ascii-studio-klic && cd ~/ascii-studio-klic
+   keytool -genkeypair -v -keystore upload.jks -alias ascii-studio -keyalg RSA -keysize 4096 -validity 10000
+   base64 -w 0 upload.jks > upload.jks.base64
+   ```
+
+   Soubor `upload.jks` i heslo si zálohujte, třeba do správce hesel. Když se klíč ztratí, dá se
+   v Play Console požádat o nový.
+
+2. Na GitHubu v repozitáři otevřete **Settings → Secrets and variables → Actions** a přes
+   **New repository secret** přidejte:
+   - `UPLOAD_KEYSTORE_BASE64` s celým obsahem souboru `upload.jks.base64`,
+   - `UPLOAD_KEYSTORE_PASSWORD` s heslem zadaným v `keytool`.
+
+   Klíč s jiným aliasem než `ascii-studio` potřebuje ještě `UPLOAD_KEY_ALIAS`, klíč s jiným
+   heslem, než má úložiště, ještě `UPLOAD_KEY_PASSWORD`.
+
+3. Spusťte **Actions → Android CI → Run workflow** (nebo pushněte do `main`). Souhrn běhu ukáže
+   `versionCode` a otisk klíče. V sekci **Artifacts** stáhněte `ascii-studio-play-bundle`,
+   rozbalte ho a soubor `app-release.aab` nahrajte v Play Console do vydání.
+
+Dobré vědět:
+
+- `versionCode` je číslo běhu CI, takže každý nový build jde nahrát. Verzi, kterou vidí
+  uživatelé (`versionName`), změníte v `app/build.gradle.kts`.
+- Bundle obsahuje vždy celou češtinu i angličtinu, dělení podle jazyků je vypnuté. Jazyk
+  aplikace jde v Androidu 13+ přepnout nezávisle na jazyku telefonu, takže Google Play musí
+  nainstalovat oba.
+- Aplikaci z Google Play podepisuje Google svým klíčem (Play App Signing). Verzi nainstalovanou
+  z APK proto před instalací z Google Play odinstalujte.
 
 ## Architektura
 
@@ -154,7 +192,7 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 - `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, export).
 - `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore.
 - **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug
-  i release APK.
+  i release APK. S uloženým klíčem pro nahrávání připraví i bundle pro Google Play.
 - **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,
   export, otočení na šířku, živá kamera, čeština a tmavý režim. Při pádu aplikace selže.
   Spouští se ručně v záložce *Actions* nebo pushem commitu, který má v popisu `[emulator]`.
