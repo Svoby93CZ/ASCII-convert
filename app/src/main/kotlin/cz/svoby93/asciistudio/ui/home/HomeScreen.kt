@@ -66,6 +66,7 @@ fun HomeScreen(
     val viewModel: HomeViewModel = viewModel { HomeViewModel(container.imageRepository) }
     val recentImage by viewModel.recentImage.collectAsStateWithLifecycle()
     var showAbout by rememberSaveable { mutableStateOf(false) }
+    var showPrivacyPolicy by rememberSaveable { mutableStateOf(false) }
 
     // The system photo picker needs no storage permission at all.
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -150,7 +151,16 @@ fun HomeScreen(
         }
     }
 
-    if (showAbout) AboutDialog(onDismiss = { showAbout = false })
+    if (showAbout) {
+        AboutDialog(
+            onDismiss = { showAbout = false },
+            onShowPrivacyPolicy = {
+                showAbout = false
+                showPrivacyPolicy = true
+            },
+        )
+    }
+    if (showPrivacyPolicy) PrivacyPolicyDialog(onDismiss = { showPrivacyPolicy = false })
 }
 
 @Composable
@@ -176,12 +186,31 @@ private fun ContinueCard(image: ImageBitmap, onClick: () -> Unit) {
 }
 
 @Composable
-private fun AboutDialog(onDismiss: () -> Unit) {
+private fun AboutDialog(onDismiss: () -> Unit, onShowPrivacyPolicy: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
+        dismissButton = {
+            TextButton(onClick = onShowPrivacyPolicy) { Text(stringResource(R.string.action_privacy_policy)) }
+        },
         icon = { Icon(painterResource(R.drawable.ic_terminal), contentDescription = null) },
         title = { Text(stringResource(R.string.about_title, BuildConfig.VERSION_NAME)) },
         text = { Text(stringResource(R.string.about_text)) },
+    )
+}
+
+/** Google Play wants the privacy policy in the app too. Keep it in line with store/privacy-policy.md. */
+@Composable
+private fun PrivacyPolicyDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
+        title = { Text(stringResource(R.string.privacy_policy_title)) },
+        text = {
+            Text(
+                stringResource(R.string.privacy_policy_text),
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+            )
+        },
     )
 }

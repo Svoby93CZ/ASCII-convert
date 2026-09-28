@@ -13,6 +13,9 @@
     <string name="about_title">ASCII Studio %1$s</string>
     <string name="about_text">Převádí fotky na textové umění přímo v telefonu. Nic se nikam neodesílá.\n\nPísmo: JetBrains Mono, SIL Open Font License 1.1\nIkony: Material Symbols, Apache License 2.0</string>
     <string name="action_close">Zavřít</string>
+    <string name="action_privacy_policy">Zásady ochrany soukromí</string>
+    <string name="privacy_policy_title">Zásady ochrany soukromí</string>
+    <string name="privacy_policy_text">ASCII Studio nesbírá, neodesílá ani nesdílí žádné osobní údaje. Fotky zpracovává pouze ve vašem zařízení a nemá oprávnění k přístupu na internet.\n\nFotky\nObrázky, které vyberete nebo do aplikace nasdílíte, se převádějí na ASCII art přímo v zařízení. Kopie posledního upravovaného obrázku zůstává v soukromém úložišti aplikace, abyste mohli v úpravách pokračovat.\n\nKamera\nOprávnění ke kameře slouží jen pro živou ASCII kameru a pro pořízení fotky, o které sami požádáte. Obraz z kamery se zpracovává jen v zařízení.\n\nNastavení\nNastavení vzhledu se ukládá v zařízení a může být součástí zálohy Androidu, pokud ji máte zapnutou. Obrázky se nezálohují.\n\nExport\nVýsledky se uloží nebo předají jen tam, kam sami zvolíte. Oprávnění k zápisu do úložiště aplikace žádá jen na Androidu 9 a starším, aby mohla ukládat do galerie.\n\nAplikace neobsahuje reklamy, analytické nástroje ani sledování a nevyžaduje účet. Všechna její data smažete odinstalováním aplikace nebo vymazáním jejích dat v nastavení Androidu.\n\nKontakt na vývojáře najdete na stránce aplikace v Google Play.</string>
 
     <!-- Editor -->
     <string name="editor_size">%1$d × %2$d znaků</string>
