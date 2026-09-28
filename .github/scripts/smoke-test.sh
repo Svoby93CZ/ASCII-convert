@@ -164,6 +164,15 @@ echo "### Live camera"
 adb shell am start -W -n "$ACTIVITY"
 sleep 2
 tap "Live ASCII camera" && screen 13-camera 10
+tap "COLORS" && tap "Amber" && screen 13-camera-amber 4
+tap "BACKGROUND" && tap "Rain" && screen 13-camera-rain 4
+tap "Hide settings" && screen 13-camera-folded 3
+tap "Show settings"
+# Back to the default look, so that the later screens stay comparable between runs.
+tap "COLORS" && tap "Terminal"
+tap "BACKGROUND" && tap "ASCII"
+tap "STYLE"
+alive camera-settings
 tap "Take photo" 540 2140
 screen 14-captured 8
 alive capture
@@ -180,6 +189,9 @@ tap "O aplikaci" && tap "Zásady ochrany soukromí" && screen 15-privacy-policy-
 adb shell input keyevent KEYCODE_BACK
 sleep 1
 tap "Pokračovat v úpravách" && screen 16-editor-cs-dark 6
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+tap "Živá ASCII kamera" && screen 17-camera-cs 8
 alive czech
 
 adb logcat -d -b crash > "$OUT/crash.txt"

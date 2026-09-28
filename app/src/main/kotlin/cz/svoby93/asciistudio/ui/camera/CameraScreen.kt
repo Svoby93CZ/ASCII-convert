@@ -1,6 +1,7 @@
 package cz.svoby93.asciistudio.ui.camera
 
 import android.Manifest
+import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -15,35 +16,24 @@ import androidx.camera.core.CameraInfoUnavailableException
 import androidx.camera.core.CameraSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FilledTonalIconToggleButton
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,19 +42,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -72,10 +58,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.svoby93.asciistudio.LocalAppContainer
 import cz.svoby93.asciistudio.R
-import cz.svoby93.asciistudio.data.CharsetPreset
-import cz.svoby93.asciistudio.data.ColorMode
-import cz.svoby93.asciistudio.render.artStyle
-import cz.svoby93.asciistudio.ui.components.AsciiArtView
+import cz.svoby93.asciistudio.data.ArtPalette
+import cz.svoby93.asciistudio.data.CameraBackground
 import java.util.concurrent.ExecutionException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -98,34 +82,46 @@ fun CameraScreen(onBack: () -> Unit, onCaptured: () -> Unit) {
         if (!granted && !askedOnce) requestPermission.launch(Manifest.permission.CAMERA)
     }
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color.Black),
-    ) {
-        if (granted) {
-            LiveCamera(onBack = onBack, onCaptured = onCaptured)
-        } else {
-            val activity = context.findActivity()
-            // Once the user said "don't ask again" only the settings screen can help.
-            val canAskAgain = !askedOnce ||
-                activity?.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) == true
-            PermissionRationale(
-                canAskAgain = canAskAgain,
-                onRequest = { requestPermission.launch(Manifest.permission.CAMERA) },
-                onOpenSettings = {
-                    context.startActivity(
-                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
-                    )
-                },
-                onBack = onBack,
-            )
+    // The whole screen takes the colours of the art palette.
+    val settings by LocalAppContainer.current.settingsRepository.settings.collectAsStateWithLifecycle()
+    val palette = settings?.palette ?: ArtPalette.TERMINAL
+    val colors = remember(palette) { palette.cameraColors() }
+    // Respect the system "remove animations" setting: moving backgrounds and blinking stop.
+    val animate = remember { ValueAnimator.areAnimatorsEnabled() }
+    SystemBarsAppearance(light = colors.isLight)
+
+    CameraTheme(colors) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(colors.desk),
+        ) {
+            if (granted) {
+                LiveCamera(onBack = onBack, onCaptured = onCaptured, animate = animate)
+            } else {
+                val activity = context.findActivity()
+                // Once the user said "don't ask again" only the settings screen can help.
+                val canAskAgain = !askedOnce ||
+                    activity?.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) == true
+                PermissionRationale(
+                    background = settings?.cameraBackground ?: CameraBackground.ASCII,
+                    animate = animate,
+                    canAskAgain = canAskAgain,
+                    onRequest = { requestPermission.launch(Manifest.permission.CAMERA) },
+                    onOpenSettings = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
+                        )
+                    },
+                    onBack = onBack,
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
+private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit, animate: Boolean) {
     val container = LocalAppContainer.current
     val viewModel: CameraViewModel = viewModel {
         CameraViewModel(container.imageRepository, container.settingsRepository, container.optionsFactory)
@@ -176,145 +172,90 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
         }
     }
 
-    val style = settings?.artStyle()
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(style?.let { Color(it.background) } ?: Color.Black),
-    ) {
-        if (style != null) {
-            AsciiArtView(art = art, style = style, modifier = Modifier.fillMaxSize(), interactive = false)
-        }
-        if (cameraUnavailable) {
-            Text(
-                stringResource(R.string.camera_unavailable),
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(32.dp),
-            )
-        } else if (art == null) {
-            CircularProgressIndicator(Modifier.align(Alignment.Center))
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(12.dp),
-        ) {
-            FilledTonalIconButton(onClick = onBack) {
-                Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = stringResource(R.string.action_back))
-            }
-            Spacer(Modifier.weight(1f))
-            FilledTonalIconToggleButton(
-                checked = settings?.colorMode == ColorMode.PHOTO,
-                onCheckedChange = { photoColors ->
-                    viewModel.updateSettings { it.copy(colorMode = if (photoColors) ColorMode.PHOTO else ColorMode.PALETTE) }
-                },
-            ) {
-                Icon(painterResource(R.drawable.ic_palette), contentDescription = stringResource(R.string.camera_photo_colors))
-            }
-        }
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(bottom = 24.dp),
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-            ) {
-                CharsetPreset.entries.filter { it != CharsetPreset.CUSTOM }.forEach { preset ->
-                    FilterChip(
-                        selected = settings?.charset == preset,
-                        onClick = { viewModel.updateSettings { it.copy(charset = preset) } },
-                        label = { Text(stringResource(preset.label)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                        ),
-                    )
-                }
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Spacer(Modifier.size(56.dp))
-                ShutterButton(enabled = !capturing && !cameraUnavailable, onClick = viewModel::capture)
-                FilledTonalIconButton(onClick = viewModel::switchCamera, modifier = Modifier.size(56.dp)) {
-                    Icon(painterResource(R.drawable.ic_cameraswitch), contentDescription = stringResource(R.string.camera_switch))
-                }
-            }
-        }
-
-        SnackbarHost(snackbarHostState, Modifier.align(Alignment.Center))
-    }
-}
-
-@Composable
-private fun ShutterButton(enabled: Boolean, onClick: () -> Unit) {
-    val label = stringResource(R.string.camera_capture)
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(80.dp)
-            .clip(CircleShape)
-            .border(4.dp, Color.White, CircleShape)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = label },
-    ) {
-        Box(
-            Modifier
-                .size(62.dp)
-                .clip(CircleShape)
-                .background(if (enabled) Color.White else Color.White.copy(alpha = 0.4f)),
-        )
-    }
+    // The stored settings arrive within moments; until then the empty background shows.
+    val current = settings ?: return
+    CameraContent(
+        art = art,
+        settings = current,
+        frontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT,
+        cameraUnavailable = cameraUnavailable,
+        capturing = capturing,
+        animate = animate,
+        onBack = onBack,
+        onCapture = viewModel::capture,
+        onSwitchCamera = viewModel::switchCamera,
+        onChange = viewModel::updateSettings,
+        snackbarHostState = snackbarHostState,
+    )
 }
 
 @Composable
 private fun PermissionRationale(
+    background: CameraBackground,
+    animate: Boolean,
     canAskAgain: Boolean,
     onRequest: () -> Unit,
     onOpenSettings: () -> Unit,
     onBack: () -> Unit,
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
-    ) {
-        Icon(
-            painterResource(R.drawable.ic_photo_camera),
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(48.dp),
-        )
-        Text(stringResource(R.string.camera_permission_title), style = MaterialTheme.typography.headlineSmall, color = Color.White)
-        Text(
-            stringResource(R.string.camera_permission_text),
-            color = Color.White.copy(alpha = 0.8f),
-            textAlign = TextAlign.Center,
-        )
-        if (canAskAgain) {
-            Button(onClick = onRequest) { Text(stringResource(R.string.camera_permission_grant)) }
-        } else {
-            Button(onClick = onOpenSettings) { Text(stringResource(R.string.camera_permission_settings)) }
+    val colors = LocalCameraColors.current
+    Box(Modifier.fillMaxSize()) {
+        CameraBackdrop(background, animate, Modifier.fillMaxSize())
+        TerminalFrame(
+            title = stringResource(R.string.camera_permission_title),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(24.dp)
+                .widthIn(max = 480.dp)
+                .fillMaxWidth(),
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_photo_camera),
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                )
+                Text(
+                    stringResource(R.string.camera_permission_text),
+                    color = colors.tint(0.85f),
+                    textAlign = TextAlign.Center,
+                )
+                if (canAskAgain) {
+                    Button(onClick = onRequest) { Text(stringResource(R.string.camera_permission_grant)) }
+                } else {
+                    Button(onClick = onOpenSettings) { Text(stringResource(R.string.camera_permission_settings)) }
+                }
+                OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back)) }
+            }
         }
-        OutlinedButton(onClick = onBack) { Text(stringResource(R.string.action_back), color = Color.White) }
+    }
+}
+
+/**
+ * Dark status and navigation bar icons on light palettes and light icons on dark ones, for as
+ * long as the camera is shown.
+ */
+@Composable
+private fun SystemBarsAppearance(light: Boolean) {
+    val view = LocalView.current
+    DisposableEffect(view, light) {
+        val window = view.context.findActivity()?.window ?: return@DisposableEffect onDispose { }
+        val controller = WindowCompat.getInsetsController(window, view)
+        val statusBars = controller.isAppearanceLightStatusBars
+        val navigationBars = controller.isAppearanceLightNavigationBars
+        controller.isAppearanceLightStatusBars = light
+        controller.isAppearanceLightNavigationBars = light
+        onDispose {
+            controller.isAppearanceLightStatusBars = statusBars
+            controller.isAppearanceLightNavigationBars = navigationBars
+        }
     }
 }
 

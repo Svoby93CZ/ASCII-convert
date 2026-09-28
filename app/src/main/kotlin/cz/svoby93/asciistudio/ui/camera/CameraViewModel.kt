@@ -113,7 +113,7 @@ class CameraViewModel(
     private fun analyze(image: ImageProxy) {
         image.use { frame ->
             val settings = settingsRepository.settings.value ?: return
-            val columns = min(settings.columns, MAX_LIVE_COLUMNS)
+            val columns = min(settings.columns, StudioSettings.MAX_LIVE_COLUMNS)
             val mirror = lens.value == CameraSelector.LENS_FACING_FRONT
             val source = frame.toBitmap()
             val small = upright(source, frame.imageInfo.rotationDegrees, mirror, columns * SAMPLES_PER_COLUMN)
@@ -146,9 +146,6 @@ class CameraViewModel(
 
     private companion object {
         const val TAG = "AsciiStudio"
-
-        /** Keeps live conversion fast enough for a smooth preview. */
-        const val MAX_LIVE_COLUMNS = 160
 
         /** Source pixels per text column for the live preview: enough for good averaging. */
         const val SAMPLES_PER_COLUMN = 4
