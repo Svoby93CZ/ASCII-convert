@@ -33,6 +33,16 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
   redirects there). When the environment's network policy blocks it, no Gradle task works at all,
   not even `:engine:test`, because the root build script resolves the AGP plugin. Ask the
   maintainer to allow `dl.google.com` in the environment's network settings, or verify through CI.
+- The environment's setup script is a copy of `.claude/cloud-setup.sh`:
+  - It installs the Android SDK into `/opt/android-sdk`.
+  - It points Gradle to the SDK with `systemProp.android.home` in `~/.gradle/gradle.properties`.
+    AGP ignores `systemProp.ANDROID_HOME`, so no environment variable is set.
+  - When `/opt/android-sdk` is missing, run the script by hand: `bash .claude/cloud-setup.sh`.
+  - When AGP asks for other SDK packages, update `PACKAGES` in the script and ask the maintainer
+    to paste the new version into the environment.
+- Maven Central sometimes answers the shared cloud IP with `429 Too Many Requests`. That is not a
+  build problem. Wait a few minutes and run the build again; Gradle keeps what it already
+  downloaded.
 - CI artifacts are served from `*.blob.core.windows.net`, which may be blocked as well. The smoke
   test screenshots can then be decoded from the job log (see above).
 - Fallback for UI work without Google Maven: Compose Desktop 1.7.3 from Maven Central can compile
