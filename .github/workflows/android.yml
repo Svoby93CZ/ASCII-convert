@@ -33,8 +33,28 @@ jobs:
       - name: Test the conversion engine
         run: ./gradlew :engine:test --stacktrace
 
+      - name: Set up the upload key
+        # Release builds are signed with your key for Google Play when it is stored in the repository
+        # secrets (see README). Without it they are signed with the shared debug key.
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$UPLOAD_KEYSTORE_BASE64" ]; then
+            echo "::notice::No upload key in the repository secrets, so no bundle for Google Play is published. See README."
+            exit 0
+          fi
+          printf '%s' "$UPLOAD_KEYSTORE_BASE64" | tr -d '[:space:]' | base64 --decode > "$RUNNER_TEMP/upload.jks"
+          echo "RELEASE_STORE_FILE=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+
       - name: Build, test and lint the app
-        run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --stacktrace
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS || 'ascii-studio' }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+        # The run number is the version code, so every bundle can be uploaded to Google Play.
+        run: >-
+          ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease :app:bundleRelease
+          -PversionCode=${{ github.run_number }} --stacktrace
 
       - name: Upload APKs
         uses: actions/upload-artifact@v7
@@ -44,6 +64,26 @@ jobs:
             app/build/outputs/apk/release/*.apk
             app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Upload the bundle for Google Play
+        if: env.RELEASE_STORE_FILE != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: ascii-studio-play-bundle
+          path: app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+      - name: Describe the bundle
+        if: env.RELEASE_STORE_FILE != ''
+        run: |
+          signer=$(keytool -printcert -jarfile app/build/outputs/bundle/release/app-release.aab)
+          {
+            echo "### Bundle for Google Play"
+            echo "- Artifact \`ascii-studio-play-bundle\` with \`app-release.aab\`"
+            echo "- versionCode ${{ github.run_number }}"
+            echo "- Upload key: $(grep -m 1 'Owner:' <<< "$signer" | sed 's/^.*Owner: //')"
+            echo "- SHA-256: $(grep -m 1 'SHA256:' <<< "$signer" | sed 's/^.*SHA256: //')"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload reports
         if: failure()

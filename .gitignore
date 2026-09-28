@@ -15,6 +15,7 @@ captures/
 local.properties
 keystore.properties
 *.jks
+*.jks.base64
 release.keystore
 
 # Build outputs

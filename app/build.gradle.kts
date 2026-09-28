@@ -9,12 +9,17 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Release builds are signed with your own key when keystore.properties exists (see README),
-// otherwise with the shared debug key so that CI artifacts can always be installed.
+// Release builds are signed with your upload key when it is configured: in keystore.properties
+// for local builds, through RELEASE_* environment variables on CI (see README). Otherwise they
+// fall back to the shared debug key, so the build always works, but Google Play rejects them.
 val keystoreProperties = Properties().apply {
     val file = rootProject.file("keystore.properties")
     if (file.exists()) file.inputStream().use { load(it) }
 }
+
+fun releaseSigning(property: String, variable: String): String? =
+    keystoreProperties.getProperty(property)?.takeIf { it.isNotBlank() }
+        ?: providers.environmentVariable(variable).orNull?.takeIf { it.isNotBlank() }
 
 android {
     namespace = "cz.svoby93.asciistudio"
@@ -24,8 +29,22 @@ android {
         applicationId = "cz.svoby93.asciistudio"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
+        // CI passes its run number, so every bundle uploaded to Google Play has a higher version code.
+        versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 1
         versionName = "1.0.0"
+    }
+
+    androidResources {
+        // Drops library translations to languages the app itself does not speak.
+        localeFilters += setOf("en", "cs")
+    }
+
+    bundle {
+        language {
+            // The app language can be changed in Android settings (locales_config.xml), so Google Play
+            // has to install every translation, not only the languages of the device.
+            enableSplit = false
+        }
     }
 
     signingConfigs {
@@ -37,12 +56,14 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
-        if (keystoreProperties.isNotEmpty()) {
+        val releaseStoreFile = releaseSigning("storeFile", "RELEASE_STORE_FILE")
+        if (releaseStoreFile != null) {
             create("release") {
-                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
-                storePassword = keystoreProperties.getProperty("storePassword")
-                keyAlias = keystoreProperties.getProperty("keyAlias")
-                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = releaseSigning("storePassword", "RELEASE_STORE_PASSWORD")
+                keyAlias = releaseSigning("keyAlias", "RELEASE_KEY_ALIAS")
+                // Key stores made by keytool (PKCS12) use the same password for the store and the key.
+                keyPassword = releaseSigning("keyPassword", "RELEASE_KEY_PASSWORD") ?: storePassword
             }
         }
     }
