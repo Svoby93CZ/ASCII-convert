@@ -63,12 +63,23 @@ enum class EditorTab(@StringRes val label: Int) {
 
 typealias SettingsChange = ((StudioSettings) -> StudioSettings) -> Unit
 
+/**
+ * @param charsets the character sets to offer; custom characters can only be edited when
+ *   [CharsetPreset.CUSTOM] is among them.
+ * @param columnsRange the widths to offer; a wider stored width is shown as the largest one.
+ */
 @Composable
-fun StyleControls(settings: StudioSettings, onChange: SettingsChange) {
+fun StyleControls(
+    settings: StudioSettings,
+    onChange: SettingsChange,
+    charsets: List<CharsetPreset> = CharsetPreset.entries,
+    columnsRange: IntRange = StudioSettings.MIN_COLUMNS..StudioSettings.MAX_COLUMNS,
+) {
+    val columns = settings.columns.coerceIn(columnsRange)
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionLabel(R.string.label_charset)
         ChipRow {
-            CharsetPreset.entries.forEach { preset ->
+            charsets.forEach { preset ->
                 FilterChip(
                     selected = settings.charset == preset,
                     onClick = { onChange { it.copy(charset = preset) } },
@@ -76,14 +87,14 @@ fun StyleControls(settings: StudioSettings, onChange: SettingsChange) {
                 )
             }
         }
-        if (settings.charset == CharsetPreset.CUSTOM) {
+        if (settings.charset == CharsetPreset.CUSTOM && CharsetPreset.CUSTOM in charsets) {
             CustomCharsField(settings.customChars) { chars -> onChange { it.copy(customChars = chars) } }
         }
         LabeledSlider(
             label = stringResource(R.string.label_columns),
-            valueText = stringResource(R.string.value_columns, settings.columns),
-            value = settings.columns.toFloat(),
-            valueRange = StudioSettings.MIN_COLUMNS.toFloat()..StudioSettings.MAX_COLUMNS.toFloat(),
+            valueText = stringResource(R.string.value_columns, columns),
+            value = columns.toFloat(),
+            valueRange = columnsRange.first.toFloat()..columnsRange.last.toFloat(),
             onValueChange = { value -> onChange { it.copy(columns = value.roundToInt()) } },
         )
         SectionLabel(R.string.label_edges)
@@ -353,7 +364,7 @@ private fun ChipRow(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun SectionLabel(@StringRes text: Int) {
+internal fun SectionLabel(@StringRes text: Int) {
     Text(
         stringResource(text),
         style = MaterialTheme.typography.titleSmall,

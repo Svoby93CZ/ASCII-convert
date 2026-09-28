@@ -23,14 +23,14 @@ Proměňte fotky v ASCII art. Braille, barvy, obrysy, živá kamera. Bez interne
 ASCII Studio promění vaše fotky v umění složené ze znaků. Vyberte fotku z galerie, nasdílejte obrázek z jiné aplikace nebo namiřte kameru a sledujte svět jako ASCII art v reálném čase.
 
 HLAVNÍ FUNKCE
-• Živá ASCII kamera: obraz se převádí na znaky v reálném čase a fotku pak doladíte v editoru
+• Živá ASCII kamera: obraz se převádí na znaky v reálném čase, znaky, šířku, barvy i pozadí nastavíte přímo v kameře a fotku pak doladíte v editoru
 • Okamžitý náhled s přibližováním dvěma prsty a porovnáním s originálem
 • Sady znaků: standardní, detailní, bloky ░▒▓█, Braille s dvojnásobným rozlišením, binární 0 a 1 i vlastní znaky
 • Kalibrované tóny: hustota každého znaku je změřená, takže přechody odpovídají fotce
 • Úpravy tónu: automatické úrovně, jas, kontrast, ostrost a invertování
 • Dithering Floyd–Steinberg, Atkinson a Bayer
 • Obrysy: detekce hran kreslí linky znaky | / - \
-• Barvy: 7 palet (Terminál, Jantar, Noc, Synthwave, Modrotisk, Papír, Inkoust) nebo barvy přímo z fotky
+• Barvy: 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo barvy přímo z fotky
 
 EXPORT
 • Kopírování textu do schránky
@@ -64,14 +64,14 @@ Turn photos into ASCII art. Braille, colors, outlines, live camera. Offline.
 ASCII Studio turns your photos into art made of characters. Pick a photo from your gallery, share a picture from another app or point your camera and watch the world as ASCII art in real time.
 
 FEATURES
-• Live ASCII camera: see the camera image as characters in real time, then fine-tune the photo in the editor
+• Live ASCII camera: see the camera image as characters in real time, set the characters, width, colors and background right in the camera, then fine-tune the photo in the editor
 • Instant preview with pinch to zoom and a comparison with the original
 • Character sets: standard, detailed, blocks ░▒▓█, Braille with double resolution, binary 0 and 1, or your own characters
 • Calibrated tones: the ink density of every character is measured, so gradients match the photo
 • Tone controls: auto levels, brightness, contrast, sharpness and invert
 • Floyd–Steinberg, Atkinson and Bayer dithering
 • Outlines: edge detection draws lines with the characters | / - \
-• Colors: 7 palettes (Terminal, Amber, Night, Synthwave, Blueprint, Paper, Ink) or the colors of the photo itself
+• Colors: 10 palettes (Terminal, Amber, Ruby, Ice, Night, Synthwave, Blueprint, LCD, Paper, Ink) or the colors of the photo itself
 
 EXPORT
 • Copy the text to the clipboard

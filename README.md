@@ -31,7 +31,10 @@ v telefonu, bez internetu a bez odesílání dat.
 - **Fotky z galerie** přes systémový výběr fotek (nepotřebuje žádné oprávnění) a **sdílení
   obrázků** do aplikace z galerie, prohlížeče nebo chatu.
 - **Živá ASCII kamera** – obraz z kamery se převádí na ASCII art v reálném čase, přepínání
-  přední/zadní kamery, fotka v plném rozlišení rovnou do editoru.
+  přední/zadní kamery, fotka v plném rozlišení rovnou do editoru. Přímo v kameře jde nastavit
+  sadu znaků, šířku, obrysy, barvy i tón. Náhled a nastavení jsou v rámečcích ve stylu
+  terminálových oken a celá obrazovka se barví podle zvolené palety. Za okny je pozadí podle výběru:
+  ASCII vinětace, padající znaky, mřížka, CRT monitor nebo jednobarevné.
 - **Editor s okamžitým náhledem** – přibližování dvěma prsty, posun, dvojité klepnutí,
   porovnání s originálem.
 - **Sady znaků:** standardní, detailní (28 úrovní), bloky `░▒▓█`, **Braille** (2×4 body na
@@ -43,7 +46,7 @@ v telefonu, bez internetu a bez odesílání dat.
 - **Dithering:** Floyd–Steinberg, Atkinson a Bayer.
 - **Obrysy:** detekce hran (Sobel + tenzor struktury) kreslí linky znaky `| / - \`,
   v kombinaci s tóny nebo samostatně.
-- **Barvy:** 7 palet (Terminál, Jantar, Noc, Synthwave, Modrotisk, Papír, Inkoust) nebo
+- **Barvy:** 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo
   barvy z fotky pro každý znak zvlášť.
 - **Export:** kopírování textu, sdílení textu nebo PNG, uložení do galerie
   (`Obrázky/ASCII Studio`), TXT, barevné HTML a ANSI pro terminál (`cat obrazek.ans`).

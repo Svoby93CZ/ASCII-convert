@@ -75,6 +75,9 @@
     <string name="palette_ink">Inkoust</string>
     <string name="palette_blueprint">Modrotisk</string>
     <string name="palette_synthwave">Synthwave</string>
+    <string name="palette_ruby">Rubín</string>
+    <string name="palette_ice">Led</string>
+    <string name="palette_lcd">LCD</string>
 
     <!-- Export -->
     <string name="export_title">Export</string>
@@ -109,4 +112,19 @@
     <string name="camera_permission_grant">Povolit kameru</string>
     <string name="camera_permission_settings">Otevřít nastavení</string>
     <string name="camera_unavailable">V tomto zařízení není dostupná žádná kamera.</string>
+    <string name="camera_back_lens">Zadní kamera</string>
+    <string name="camera_front_lens">Přední kamera</string>
+    <string name="camera_live">Živě</string>
+    <string name="camera_starting">Spouštím kameru</string>
+    <string name="camera_settings">Nastavení</string>
+    <string name="camera_settings_show">Zobrazit nastavení</string>
+    <string name="camera_settings_hide">Skrýt nastavení</string>
+    <string name="camera_tab_background">Pozadí</string>
+    <string name="camera_background_label">Pozadí obrazovky</string>
+    <string name="camera_background_supporting">Zdobí jen obrazovku kamery, fotka si ponechá barvy palety.</string>
+    <string name="background_ascii">ASCII</string>
+    <string name="background_rain">Déšť</string>
+    <string name="background_grid">Mřížka</string>
+    <string name="background_crt">CRT</string>
+    <string name="background_none">Žádné</string>
 </resources>
