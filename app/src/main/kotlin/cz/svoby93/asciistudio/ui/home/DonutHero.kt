@@ -1,13 +1,9 @@
 package cz.svoby93.asciistudio.ui.home
 
-import android.animation.ValueAnimator
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -19,39 +15,43 @@ import androidx.compose.ui.unit.dp
 import cz.svoby93.asciistudio.engine.Donut
 import cz.svoby93.asciistudio.render.ArtStyle
 import cz.svoby93.asciistudio.ui.components.AsciiArtView
+import cz.svoby93.asciistudio.ui.studio.LocalAnimationsEnabled
+import cz.svoby93.asciistudio.ui.studio.LocalStudioColors
 import kotlin.math.pow
 
-/** The classic spinning ASCII donut, rendered by the same renderer as the user's art. */
+/**
+ * The classic spinning ASCII donut in the colours of the palette, rendered by the same renderer as
+ * the user's art. Stands still when the system asks for no animations.
+ */
 @Composable
 fun DonutHero(modifier: Modifier = Modifier) {
+    val colors = LocalStudioColors.current
     val donut = remember { Donut() }
-    var art by remember { mutableStateOf(donut.frame(START_TIME, ::shade)) }
+    val shade = remember(colors) { shader(dark = colors.tint(0.3f), bright = colors.ink) }
+    var time by remember { mutableFloatStateOf(START_TIME) }
+    val art = remember(time, shade) { donut.frame(time, shade) }
 
-    // Respect the system "remove animations" setting and show a still frame instead.
-    val animate = remember { ValueAnimator.areAnimatorsEnabled() }
-    if (animate) {
+    if (LocalAnimationsEnabled.current) {
         LaunchedEffect(donut) {
-            val start = withFrameNanos { it }
+            val start = withFrameNanos { it } - ((time - START_TIME) * NANOS_PER_SECOND).toLong()
             while (true) {
-                withFrameNanos { now -> art = donut.frame(START_TIME + (now - start) / 1_000_000_000f, ::shade) }
+                withFrameNanos { now -> time = START_TIME + (now - start) / NANOS_PER_SECOND }
             }
         }
     }
 
-    Surface(modifier = modifier, shape = RoundedCornerShape(28.dp), color = HeroBackground) {
-        AsciiArtView(
-            art = art,
-            style = ArtStyle(HeroBackground.toArgb(), HeroBright.toArgb(), colored = true),
-            modifier = Modifier.fillMaxSize(),
-            interactive = false,
-            contentPadding = 16.dp,
-        )
-    }
+    AsciiArtView(
+        art = art,
+        style = ArtStyle(colors.paper.toArgb(), colors.ink.toArgb(), colored = true),
+        modifier = modifier,
+        interactive = false,
+        contentPadding = 16.dp,
+    )
 }
 
-private fun shade(light: Float): Int = lerp(HeroDark, HeroBright, light.pow(0.8f)).toArgb()
+/** Dark sides of the donut fade into the paper, lit ones get the full ink. */
+private fun shader(dark: Color, bright: Color): (Float) -> Int =
+    { light -> lerp(dark, bright, light.pow(0.8f)).toArgb() }
 
 private const val START_TIME = 0.8f
-private val HeroBackground = Color(0xFF0B120E)
-private val HeroDark = Color(0xFF14735A)
-private val HeroBright = Color(0xFFB9FFD8)
+private const val NANOS_PER_SECOND = 1_000_000_000f

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="window_background">#FFF5FBF4</color>
+    <!-- The desk colour of the Terminal palette, shown until Compose draws the first frame. -->
+    <color name="window_background">#FF060907</color>
     <color name="splash_background">#FF0B120E</color>
 </resources>

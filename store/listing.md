@@ -24,6 +24,8 @@ ASCII Studio promění vaše fotky v umění složené ze znaků. Vyberte fotku 
 
 HLAVNÍ FUNKCE
 • Živá ASCII kamera: obraz se převádí na znaky v reálném čase, znaky, šířku, barvy i pozadí nastavíte přímo v kameře a fotku pak doladíte v editoru
+• Galerie: ASCII arty si uložíte i s fotkou a nastavením a kdykoli je znovu otevřete a upravíte
+• Retro vzhled: okna ve stylu terminálu a pozadí s padajícími znaky, mřížkou nebo CRT monitorem, vše v barvách zvolené palety
 • Okamžitý náhled s přibližováním dvěma prsty a porovnáním s originálem
 • Sady znaků: standardní, detailní, bloky ░▒▓█, Braille s dvojnásobným rozlišením, binární 0 a 1 i vlastní znaky
 • Kalibrované tóny: hustota každého znaku je změřená, takže přechody odpovídají fotce
@@ -35,13 +37,13 @@ HLAVNÍ FUNKCE
 EXPORT
 • Kopírování textu do schránky
 • Sdílení textu nebo obrázku PNG
-• Uložení do galerie
+• Uložení do složky Obrázky
 • Soubory TXT, barevné HTML a ANSI pro terminál
 
 SOUKROMÍ
 Vše se počítá přímo v telefonu. Aplikace nemá přístup k internetu, neobsahuje reklamy ani sledování a vaše fotky nikam neodesílá.
 
-Barvy podle tapety (Material You), tmavý režim, podpora tabletů a režimu na šířku. Česky a anglicky.
+Podpora tabletů a režimu na šířku. Česky a anglicky.
 ```
 
 ## English (en-US)
@@ -65,6 +67,8 @@ ASCII Studio turns your photos into art made of characters. Pick a photo from yo
 
 FEATURES
 • Live ASCII camera: see the camera image as characters in real time, set the characters, width, colors and background right in the camera, then fine-tune the photo in the editor
+• Gallery: keep your ASCII art together with its photo and settings, open it again and keep editing any time
+• Retro look: terminal-style windows and backgrounds with falling characters, a grid or a CRT monitor, all in the colors of the chosen palette
 • Instant preview with pinch to zoom and a comparison with the original
 • Character sets: standard, detailed, blocks ░▒▓█, Braille with double resolution, binary 0 and 1, or your own characters
 • Calibrated tones: the ink density of every character is measured, so gradients match the photo
@@ -76,13 +80,13 @@ FEATURES
 EXPORT
 • Copy the text to the clipboard
 • Share the text or a PNG image
-• Save to the gallery
+• Save to the Pictures folder
 • TXT, colored HTML and ANSI files for the terminal
 
 PRIVACY
 Everything is computed on your phone. The app has no internet access, no ads and no tracking, and your photos never leave your device.
 
-Colors from your wallpaper (Material You), dark theme, tablet and landscape layouts. English and Czech.
+Tablet and landscape layouts. English and Czech.
 ```
 
 ## Grafika

@@ -109,6 +109,13 @@ adb shell am start -W -n "$ACTIVITY"
 screen 01-home 6
 alive home
 
+echo "### Landscape home"
+adb shell wm user-rotation lock 1 || adb shell settings put system user_rotation 1
+screen 01-home-landscape 5
+adb shell wm user-rotation lock 0 || adb shell settings put system user_rotation 0
+sleep 3
+alive home-landscape
+
 echo "### About and privacy policy"
 tap "About" && tap "Privacy policy" && screen 01-privacy-policy 2
 adb shell input keyevent KEYCODE_BACK
@@ -154,6 +161,7 @@ tap "Show original"
 tap "Export" && screen 10-export-sheet 3
 adb shell input keyevent KEYCODE_BACK
 sleep 2
+tap "Save to gallery" && screen 10-saved-to-gallery 3
 
 echo "### Landscape editor"
 adb shell wm user-rotation lock 1 || adb shell settings put system user_rotation 1
@@ -165,6 +173,17 @@ alive landscape
 echo "### Back home"
 adb shell input keyevent KEYCODE_BACK
 screen 12-home-continue 4
+
+echo "### Gallery"
+tap "Gallery" && screen 12-gallery 3
+# The saved art opens in the editor with its settings.
+tap "ASCII art" && screen 12-gallery-opened 6
+alive gallery
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+tap "Delete" && screen 12-gallery-delete 2 && tap "Delete" && screen 12-gallery-empty 2
+adb shell input keyevent KEYCODE_BACK
+sleep 2
 
 echo "### Live camera"
 adb shell am start -W -n "$ACTIVITY"
@@ -195,6 +214,9 @@ tap "O aplikaci" && tap "Zásady ochrany soukromí" && screen 15-privacy-policy-
 adb shell input keyevent KEYCODE_BACK
 sleep 1
 tap "Pokračovat v úpravách" && screen 16-editor-cs-dark 6
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+tap "Galerie" && screen 16-gallery-cs 3
 adb shell input keyevent KEYCODE_BACK
 sleep 2
 tap "Živá ASCII kamera" && screen 17-camera-cs 8

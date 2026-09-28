@@ -10,16 +10,23 @@
     <string name="action_continue">Continue editing</string>
     <string name="continue_supporting">Your last image is waiting for you</string>
     <string name="home_tip">Tip: share any picture from your gallery or browser straight to ASCII Studio.</string>
+    <string name="home_menu">Menu</string>
+    <string name="home_hero_title" translatable="false">donut.c</string>
+    <string name="home_hero_status">Run</string>
     <string name="action_about">About</string>
     <string name="about_title">ASCII Studio %1$s</string>
     <string name="about_text">Turns photos into text art right on your device. Nothing is uploaded anywhere.\n\nFont: JetBrains Mono, SIL Open Font License 1.1\nIcons: Material Symbols, Apache License 2.0</string>
     <string name="action_close">Close</string>
     <string name="action_privacy_policy">Privacy policy</string>
     <string name="privacy_policy_title">Privacy policy</string>
-    <string name="privacy_policy_text">ASCII Studio does not collect, send or share any personal data. Photos are processed only on your device, and the app has no permission to access the internet.\n\nPhotos\nImages you pick or share with the app are turned into ASCII art right on your device. A copy of the image you edited last stays in the app\'s private storage, so that you can continue editing.\n\nCamera\nThe camera permission is used only for the live ASCII camera and for taking a photo when you ask for it. Camera images are processed only on your device.\n\nSettings\nYour style settings are stored on your device and may be included in your Android backup if it is turned on. Images are not backed up.\n\nExport\nResults are saved or shared only where you choose. The storage permission is requested only on Android 9 and older, to save images to the gallery.\n\nThe app contains no ads, analytics or tracking and requires no account. You can delete all app data by uninstalling the app or by clearing its data in Android settings.\n\nThe developer\'s contact details are on the app\'s Google Play page.</string>
+    <string name="privacy_policy_text">ASCII Studio does not collect, send or share any personal data. Photos are processed only on your device, and the app has no permission to access the internet.\n\nPhotos\nImages you pick or share with the app are turned into ASCII art right on your device. A copy of the image you edited last stays in the app\'s private storage, so that you can continue editing.\n\nCamera\nThe camera permission is used only for the live ASCII camera and for taking a photo when you ask for it. Camera images are processed only on your device.\n\nGallery\nASCII art you save to the gallery stays in the app\'s private storage together with a reduced copy of its photo, until you delete it in the gallery.\n\nSettings\nYour style settings are stored on your device and may be included in your Android backup if it is turned on. Images and the gallery are not backed up.\n\nExport\nResults are saved or shared only where you choose. The storage permission is requested only on Android 9 and older, to save images to the Pictures folder.\n\nThe app contains no ads, analytics or tracking and requires no account. You can delete all app data by uninstalling the app or by clearing its data in Android settings.\n\nThe developer\'s contact details are on the app\'s Google Play page.</string>
 
     <!-- Editor -->
-    <string name="editor_size">%1$d × %2$d characters</string>
+    <string name="editor_title">Editor</string>
+    <string name="editor_art" translatable="false">ASCII art</string>
+    <string name="editor_original">Original</string>
+    <string name="editor_converting">Converting</string>
+    <string name="editor_busy">Working</string>
     <string name="action_back">Back</string>
     <string name="action_show_original">Show original</string>
     <string name="action_export">Export</string>
@@ -28,11 +35,17 @@
     <string name="action_reset">Reset settings</string>
     <string name="action_fit">Fit to screen</string>
     <string name="action_retry">Back to start</string>
+    <string name="action_save_to_gallery">Save to gallery</string>
+    <string name="action_saved_in_gallery">Saved in the gallery</string>
     <string name="loading_image">Opening image…</string>
 
     <string name="tab_style">Style</string>
     <string name="tab_tone">Tone</string>
     <string name="tab_colors">Colors</string>
+    <string name="tab_background">Background</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_show">Show settings</string>
+    <string name="settings_hide">Hide settings</string>
 
     <string name="label_charset">Characters</string>
     <string name="charset_standard">Standard</string>
@@ -86,7 +99,7 @@
     <string name="export_share_text">Share as text</string>
     <string name="export_share_image">Share as image</string>
     <string name="export_image_supporting">High resolution PNG</string>
-    <string name="export_save_gallery">Save to gallery</string>
+    <string name="export_save_pictures">Save to Pictures</string>
     <string name="export_save_txt">Save as TXT</string>
     <string name="export_save_html">Save as HTML</string>
     <string name="export_html_supporting">Keeps the colors, opens in any browser</string>
@@ -96,12 +109,27 @@
 
     <!-- Messages -->
     <string name="message_copied">Copied to clipboard</string>
-    <string name="message_saved_gallery">Saved to Pictures/ASCII Studio</string>
+    <string name="message_saved_pictures">Saved to Pictures/ASCII Studio</string>
+    <string name="message_saved_to_gallery">Saved to the gallery</string>
+    <string name="message_already_in_gallery">Already in the gallery</string>
+    <string name="message_gallery_failed">Could not save to the gallery</string>
     <string name="message_saved_file">File saved</string>
     <string name="message_export_failed">Export failed</string>
-    <string name="message_storage_permission">Saving to the gallery needs the storage permission</string>
+    <string name="message_storage_permission">Saving to Pictures needs the storage permission</string>
     <string name="error_load_image">This image could not be opened.</string>
     <string name="error_no_image">There is no image to edit.</string>
+    <string name="error_gallery_item">This ASCII art is no longer in the gallery.</string>
+
+    <!-- Gallery -->
+    <string name="gallery_title">Gallery</string>
+    <string name="gallery_empty">Nothing here yet</string>
+    <string name="gallery_empty_text">Keep your ASCII art here: in the editor, tap Save to gallery.</string>
+    <string name="gallery_item">ASCII art, %1$s</string>
+    <string name="gallery_open">Open in the editor</string>
+    <string name="gallery_delete">Delete</string>
+    <string name="gallery_delete_title">Delete from the gallery?</string>
+    <string name="gallery_delete_text">The ASCII art and its photo will be removed from the app. Copies saved outside the app stay.</string>
+    <string name="action_cancel">Cancel</string>
 
     <!-- Camera -->
     <string name="camera_capture">Take photo</string>
@@ -117,12 +145,8 @@
     <string name="camera_front_lens">Front camera</string>
     <string name="camera_live">Live</string>
     <string name="camera_starting">Starting the camera</string>
-    <string name="camera_settings">Settings</string>
-    <string name="camera_settings_show">Show settings</string>
-    <string name="camera_settings_hide">Hide settings</string>
-    <string name="camera_tab_background">Background</string>
-    <string name="camera_background_label">Screen background</string>
-    <string name="camera_background_supporting">Decorates only the camera screen, the photo keeps the palette colors.</string>
+    <string name="background_label">Screen background</string>
+    <string name="background_supporting">Decorates the screens of the app; the art itself keeps the palette colors.</string>
     <string name="background_ascii">ASCII</string>
     <string name="background_rain">Rain</string>
     <string name="background_grid">Grid</string>

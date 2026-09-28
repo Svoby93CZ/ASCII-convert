@@ -32,11 +32,14 @@ v telefonu, bez internetu a bez odesílání dat.
   obrázků** do aplikace z galerie, prohlížeče nebo chatu.
 - **Živá ASCII kamera** – obraz z kamery se převádí na ASCII art v reálném čase, přepínání
   přední/zadní kamery, fotka v plném rozlišení rovnou do editoru. Přímo v kameře jde nastavit
-  sadu znaků, šířku, obrysy, barvy i tón. Náhled a nastavení jsou v rámečcích ve stylu
-  terminálových oken a celá obrazovka se barví podle zvolené palety. Za okny je pozadí podle výběru:
-  ASCII vinětace, padající znaky, mřížka, CRT monitor nebo jednobarevné.
+  sadu znaků, šířku, obrysy, barvy i tón.
 - **Editor s okamžitým náhledem** – přibližování dvěma prsty, posun, dvojité klepnutí,
-  porovnání s originálem.
+  porovnání s originálem. Nastavení je v okně se záložkami stejně jako v kameře.
+- **Galerie** – ASCII arty uložené z editoru zůstávají v aplikaci i s fotkou a nastavením, takže
+  je jde kdykoli znovu otevřít, upravit nebo smazat.
+- **Vzhled terminálu v celé aplikaci** – úvodní obrazovka, editor, galerie i kamera mají okna
+  v rámečcích ve stylu terminálových programů a barví se podle zvolené palety. Za okny je pozadí
+  podle výběru: ASCII vinětace, padající znaky, mřížka, CRT monitor nebo jednobarevné.
 - **Sady znaků:** standardní, detailní (28 úrovní), bloky `░▒▓█`, **Braille** (2×4 body na
   znak = dvojnásobné rozlišení), binární `0/1` a vlastní znaky.
 - **Kalibrované tóny:** hustota „inkoustu“ každého znaku je změřená ve vestavěném písmu
@@ -48,11 +51,11 @@ v telefonu, bez internetu a bez odesílání dat.
   v kombinaci s tóny nebo samostatně.
 - **Barvy:** 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo
   barvy z fotky pro každý znak zvlášť.
-- **Export:** kopírování textu, sdílení textu nebo PNG, uložení do galerie
-  (`Obrázky/ASCII Studio`), TXT, barevné HTML a ANSI pro terminál (`cat obrazek.ans`).
-- Material 3 s barvami podle tapety (Android 12+), tmavý režim, edge-to-edge, prediktivní
-  gesto zpět, rozložení pro tablety a na šířku, čeština a angličtina (jazyk lze nastavit
-  pro aplikaci zvlášť v nastavení Androidu 13+).
+- **Export:** kopírování textu, sdílení textu nebo PNG, uložení do složky
+  `Obrázky/ASCII Studio`, TXT, barevné HTML a ANSI pro terminál (`cat obrazek.ans`).
+- Material 3 v barvách zvolené palety, edge-to-edge, prediktivní gesto zpět, rozložení pro
+  tablety a na šířku, čeština a angličtina (jazyk lze nastavit pro aplikaci zvlášť v nastavení
+  Androidu 13+).
 - Nastavení se pamatuje a rozpracovaný obrázek přežije i ukončení aplikace systémem.
 
 ## Instalace hotového APK
@@ -170,9 +173,9 @@ ASCII-convert/
 │   ├── AsciiExport      HTML a ANSI export
 │   └── Donut            animace z úvodní obrazovky
 └── app/      Android aplikace (Jetpack Compose)
-    ├── data/     nastavení (DataStore), načítání obrázků, export a sdílení
+    ├── data/     nastavení (DataStore), načítání obrázků, galerie, export a sdílení
     ├── render/   kreslení ASCII artu na Canvas, měření znaků vlastního písma
-    └── ui/       domovská obrazovka, editor, živá kamera, téma
+    └── ui/       společný vzhled (studio), domovská obrazovka, editor, galerie, živá kamera
 ```
 
 - **Engine** pracuje s polem pixelů (`IntArray` ve formátu ARGB), takže je rychlý,
@@ -197,11 +200,12 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 ## Testy a CI
 
 - `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, export).
-- `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore.
+- `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore a galerie
+  na disku.
 - **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug
   i release APK. S uloženým klíčem pro nahrávání připraví i bundle pro Google Play.
 - **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,
-  export, otočení na šířku, živá kamera, čeština a tmavý režim. Při pádu aplikace selže.
+  export, galerie, otočení na šířku, živá kamera, čeština a tmavý režim. Při pádu aplikace selže.
   Spouští se ručně v záložce *Actions* nebo pushem commitu, který má v popisu `[emulator]`.
 
 ## Licence třetích stran

@@ -1,11 +1,10 @@
-package cz.svoby93.asciistudio.ui.camera
+package cz.svoby93.asciistudio.ui.studio
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,17 +37,19 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.pow
 
@@ -58,7 +59,8 @@ import kotlin.math.pow
  * the bottom one.
  *
  * The frame measures like its [content] plus the border, so it can either wrap the content or fill
- * the size given by [modifier].
+ * the size given by [modifier]. The labels are transparent unless [labelBackground] is given, which
+ * keeps them readable over something other than the background of the screens, like a dialog scrim.
  */
 @Composable
 fun TerminalFrame(
@@ -66,9 +68,10 @@ fun TerminalFrame(
     modifier: Modifier = Modifier,
     status: (@Composable RowScope.() -> Unit)? = null,
     footer: (@Composable RowScope.() -> Unit)? = null,
+    labelBackground: Color = Color.Unspecified,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val colors = LocalCameraColors.current
+    val colors = LocalStudioColors.current
     val cuts = remember { BorderCuts() }
     val hasFooter = footer != null
     val bottomInset = if (hasFooter) LabelHeight / 2 else 0.dp
@@ -83,11 +86,11 @@ fun TerminalFrame(
                     .padding(top = LabelHeight / 2, bottom = bottomInset),
                 content = content,
             )
-            FrameLabel(Modifier.layoutId(TITLE)) {
+            FrameLabel(Modifier.layoutId(TITLE), labelBackground) {
                 Text(title.uppercase(), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            if (status != null) FrameLabel(Modifier.layoutId(STATUS), status)
-            if (footer != null) FrameLabel(Modifier.layoutId(FOOTER), footer)
+            if (status != null) FrameLabel(Modifier.layoutId(STATUS), labelBackground, status)
+            if (footer != null) FrameLabel(Modifier.layoutId(FOOTER), labelBackground, footer)
         },
         modifier = modifier.drawWithContent {
             val stroke = BorderWidth.toPx()
@@ -156,16 +159,17 @@ private class BorderCuts {
 }
 
 @Composable
-private fun FrameLabel(modifier: Modifier, content: @Composable RowScope.() -> Unit) {
+private fun FrameLabel(modifier: Modifier, background: Color, content: @Composable RowScope.() -> Unit) {
     Row(
         modifier = modifier
             .height(LabelHeight)
+            .then(if (background.isSpecified) Modifier.background(background, LabelShape) else Modifier)
             .padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         CompositionLocalProvider(
-            LocalContentColor provides LocalCameraColors.current.ink,
+            LocalContentColor provides LocalStudioColors.current.ink,
             LocalTextStyle provides TerminalLabelStyle,
         ) {
             content()
@@ -190,35 +194,10 @@ private fun DrawScope.drawGlow(box: Rect, radius: Float, color: Color, strength:
     }
 }
 
-/** The four corner marks of a camera viewfinder. */
-@Composable
-fun ViewfinderCorners(color: Color, modifier: Modifier = Modifier, arm: Dp = 18.dp, width: Dp = 2.dp) {
-    Canvas(modifier) {
-        val a = arm.toPx()
-        val w = size.width
-        val h = size.height
-        val corners = Path().apply {
-            moveTo(0f, a)
-            lineTo(0f, 0f)
-            lineTo(a, 0f)
-            moveTo(w - a, 0f)
-            lineTo(w, 0f)
-            lineTo(w, a)
-            moveTo(w, h - a)
-            lineTo(w, h)
-            lineTo(w - a, h)
-            moveTo(a, h)
-            lineTo(0f, h)
-            lineTo(0f, h - a)
-        }
-        drawPath(corners, color, style = Stroke(width.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-    }
-}
-
 /** A blinking dot followed by [text], like the recording light of a camera. */
 @Composable
-fun RowScope.BlinkingDot(text: String, animate: Boolean) {
-    val alpha = if (animate) {
+fun RowScope.BlinkingDot(text: String) {
+    val alpha = if (LocalAnimationsEnabled.current) {
         val transition = rememberInfiniteTransition(label = "blink")
         transition.animateFloat(
             initialValue = 1f,
@@ -240,8 +219,8 @@ fun RowScope.BlinkingDot(text: String, animate: Boolean) {
 
 /** A terminal line that ends with a blinking block cursor. */
 @Composable
-fun TerminalLine(text: String, animate: Boolean, modifier: Modifier = Modifier) {
-    val cursorAlpha = if (animate) {
+fun TerminalLine(text: String, modifier: Modifier = Modifier, style: TextStyle = TerminalLabelStyle) {
+    val cursorAlpha = if (LocalAnimationsEnabled.current) {
         val transition = rememberInfiniteTransition(label = "cursor")
         transition.animateFloat(
             initialValue = 1f,
@@ -253,11 +232,20 @@ fun TerminalLine(text: String, animate: Boolean, modifier: Modifier = Modifier) 
     } else {
         null
     }
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        Text("> $text ", style = TerminalLabelStyle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    // Screen readers get the text without the prompt and the cursor.
+    Row(modifier.clearAndSetSemantics { contentDescription = text }, verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            "> $text ",
+            style = style,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        // The block is as tall as the text's capitals, whatever the size of the text.
+        val cursorHeight = with(LocalDensity.current) { (style.fontSize * CURSOR_HEIGHT).toDp() }
         Box(
             Modifier
-                .size(width = 8.dp, height = 14.dp)
+                .size(width = cursorHeight * CURSOR_ASPECT, height = cursorHeight)
                 .graphicsLayer { alpha = cursorAlpha?.value ?: 1f }
                 .background(LocalContentColor.current),
         )
@@ -269,12 +257,15 @@ internal val FrameShape = RoundedCornerShape(FrameRadius)
 
 /** Height of the labels in the border lines; half of it sticks out of the window. */
 internal val LabelHeight = 24.dp
+private val LabelShape = RoundedCornerShape(6.dp)
 
 private val BorderWidth = 1.5.dp
 private val GlowSpread = 14.dp
 private val LabelInset = 18.dp
 private const val GLOW_STEPS = 7
 private const val BLINK_MS = 650
+private const val CURSOR_HEIGHT = 1.15f
+private const val CURSOR_ASPECT = 0.58f
 
 private const val BODY = "body"
 private const val TITLE = "title"

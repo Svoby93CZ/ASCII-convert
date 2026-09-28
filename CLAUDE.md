@@ -49,7 +49,9 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
   and render the app's composables to PNG (`ImageComposeScene`). Its runtime needs
   `androidx.collection`; `org.jetbrains.compose.collection-internal:collection-desktop:1.6.0-beta02`
   works as a substitute. Android-only APIs (`R`, `stringResource`, `painterResource`, the font,
-  `AsciiArtView`) need small shims. That is why camera UI code is kept apart from CameraX code.
+  `AsciiArtView`) need small shims. That is why every screen keeps its UI in a stateless
+  `*Content` composable (`HomeContent`, `EditorContent`, `GalleryContent`, `CameraContent`),
+  apart from its ViewModel, launchers and other Android APIs.
 
 ## Architecture
 
@@ -87,16 +89,38 @@ application ID is tied to the Google Play entry and must never change.
   - a key in `SettingsRepository`'s read and write methods (enums are stored by name and fall
     back to the default);
   - an extra case in `SettingsRepositoryTest`.
+
+  `StudioSettings` is also `@Serializable`: gallery items keep a JSON copy, so a renamed property
+  falls back to its default there. `backdrop` (the screen background) is stored under its old
+  key `camera_background`. It decorates the app and is not part of the art, so opening a gallery
+  item or resetting the settings keeps it (`sameArtAs` ignores it too).
 - **Images:** `ImageRepository` keeps the working image, downscaled to 1600 px, in
   `noBackupFilesDir`. `EditorViewModel` restores it after process death through a
   `SavedStateHandle` flag.
+- **Gallery:** `GalleryRepository` keeps saved art in `noBackupFilesDir/gallery`, one folder per
+  item with the photo, a JPEG preview from `ArtExporter.writePreview` and `item.json` (settings
+  and art size). Items are written to a `.tmp` folder and renamed when complete. The editor's
+  "Save to gallery" adds an item unless the gallery already holds this photo with the same art
+  settings; `EditorRoute(galleryId)` opens an item again, bringing back its photo and settings.
+  The privacy policy promises that the gallery stays on the device and is not backed up.
 - **Editor:** `EditorViewModel` combines the image and the settings into `AsciiOptions`, then
   converts with `mapLatest` on `Dispatchers.Default`. Palette-only changes do not reconvert.
-  `EditorControls` holds the Style, Tone and Colors controls, and the camera reuses them.
+  `EditorControls` holds the Style, Tone and Colors controls; `SettingsWindow` shows them in the
+  editor and in the camera.
 - **Rendering:** `AsciiRenderer` draws on an Android `Canvas`, one `drawText` per row. Photo
   colours come from a `BitmapShader` with one pixel per cell and nearest-neighbour filtering.
   Braille is drawn as real dots. `AsciiArtView` adds fit, zoom and pan. `ArtExporter` renders
   PNGs and writes TXT, HTML and ANSI.
+- **Look (`ui/studio`):** every screen takes its colours from the art palette.
+  - `StudioRoot` (around the navigation graph in `MainActivity`) applies `StudioTheme`, sets the
+    system bar icons and draws `StudioBackdrop` once behind all screens, so screens are
+    transparent and the background stays put during transitions.
+  - `StudioTheme` derives a Material `ColorScheme` and `StudioColors` (ink, paper, desk) from
+    `ArtPalette`; `LocalAnimationsEnabled` is false when `ValueAnimator.areAnimatorsEnabled()`
+    is, and then backgrounds and blinking stand still.
+  - Windows are `TerminalFrame`s (labels set into the border), `SettingsWindow` is the tabbed
+    settings window shared by the editor and the camera, and `StudioChrome` has the top bar,
+    `RoundButton` and `TerminalDialog`.
 - **Live camera (`ui/camera`):**
   - `CameraViewModel` owns the CameraX use cases. `ImageAnalysis` delivers RGBA frames, keeps
     only the latest, and converts each frame at no more than `StudioSettings.MAX_LIVE_COLUMNS`
@@ -104,14 +128,9 @@ application ID is tied to the Google Play entry and must never change.
     editor.
   - `CameraScreen` handles the permission and camera binding, then renders the stateless
     `CameraContent`.
-  - The whole screen takes its colours from the art palette. `CameraTheme` derives a Material
-    `ColorScheme` and `CameraColors` (ink, paper, desk) from `ArtPalette`.
-  - Windows are drawn by `TerminalFrame`, `CameraBackdrop` draws the selectable backgrounds and
-    `CameraControls` is the tabbed settings window.
-  - Animations stop when `ValueAnimator.areAnimatorsEnabled()` is false.
-- **Navigation:** type-safe routes in `AsciiStudioNavHost`: `HomeRoute`, `EditorRoute(imageUri)`
-  and `CameraRoute`. Images shared from other apps reach the graph through a channel in
-  `MainActivity`.
+- **Navigation:** type-safe routes in `AsciiStudioNavHost`: `HomeRoute`,
+  `EditorRoute(imageUri, galleryId)`, `GalleryRoute` and `CameraRoute`. Images shared from other
+  apps reach the graph through a channel in `MainActivity`.
 
 ## Conventions
 

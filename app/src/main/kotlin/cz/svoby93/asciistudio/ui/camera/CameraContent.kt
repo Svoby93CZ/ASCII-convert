@@ -1,8 +1,7 @@
 package cz.svoby93.asciistudio.ui.camera
 
-import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,10 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -45,30 +41,38 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import cz.svoby93.asciistudio.R
+import cz.svoby93.asciistudio.data.CharsetPreset
 import cz.svoby93.asciistudio.data.ColorMode
 import cz.svoby93.asciistudio.data.StudioSettings
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.render.artStyle
 import cz.svoby93.asciistudio.ui.components.AsciiArtView
 import cz.svoby93.asciistudio.ui.editor.SettingsChange
-import cz.svoby93.asciistudio.ui.theme.MonoFontFamily
+import cz.svoby93.asciistudio.ui.studio.BlinkingDot
+import cz.svoby93.asciistudio.ui.studio.LocalStudioColors
+import cz.svoby93.asciistudio.ui.studio.RoundButton
+import cz.svoby93.asciistudio.ui.studio.SettingsTab
+import cz.svoby93.asciistudio.ui.studio.SettingsWindow
+import cz.svoby93.asciistudio.ui.studio.StudioTopBar
+import cz.svoby93.asciistudio.ui.studio.TerminalFrame
+import cz.svoby93.asciistudio.ui.studio.TerminalLine
 
 /**
  * The live camera screen apart from the camera itself: a window with the live art and a window
- * with its settings over a background in the colours of the palette, plus the shutter.
- * Expects [CameraTheme] around it.
+ * with its settings, plus the shutter. The background behind them comes from `StudioRoot`.
  */
 @Composable
 fun CameraContent(
@@ -77,7 +81,6 @@ fun CameraContent(
     frontCamera: Boolean,
     cameraUnavailable: Boolean,
     capturing: Boolean,
-    animate: Boolean,
     onBack: () -> Unit,
     onCapture: () -> Unit,
     onSwitchCamera: () -> Unit,
@@ -85,13 +88,12 @@ fun CameraContent(
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    var tab by rememberSaveable { mutableStateOf(CameraTab.STYLE) }
+    var tab by rememberSaveable { mutableStateOf(SettingsTab.STYLE) }
     var expanded by rememberSaveable { mutableStateOf(true) }
     val onPhotoColorsChange = { photo: Boolean ->
         onChange { it.copy(colorMode = if (photo) ColorMode.PHOTO else ColorMode.PALETTE) }
     }
     Box(modifier.fillMaxSize()) {
-        CameraBackdrop(settings.cameraBackground, animate, Modifier.fillMaxSize())
         BoxWithConstraints(
             Modifier
                 .fillMaxSize()
@@ -107,7 +109,6 @@ fun CameraContent(
                         settings = settings,
                         frontCamera = frontCamera,
                         unavailable = cameraUnavailable,
-                        animate = animate,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -119,7 +120,7 @@ fun CameraContent(
                             .fillMaxHeight(),
                     ) {
                         CameraTopBar(settings.colorMode == ColorMode.PHOTO, onPhotoColorsChange, onBack)
-                        CameraSettingsWindow(
+                        SettingsWindow(
                             settings = settings,
                             onChange = onChange,
                             tab = tab,
@@ -127,6 +128,8 @@ fun CameraContent(
                             expanded = true,
                             onExpandedChange = null,
                             contentHeight = null,
+                            charsets = LiveCharsets,
+                            columnsRange = LiveColumns,
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(start = 8.dp, end = 16.dp),
@@ -147,13 +150,12 @@ fun CameraContent(
                         settings = settings,
                         frontCamera = frontCamera,
                         unavailable = cameraUnavailable,
-                        animate = animate,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
                     )
-                    CameraSettingsWindow(
+                    SettingsWindow(
                         settings = settings,
                         onChange = onChange,
                         tab = tab,
@@ -161,6 +163,8 @@ fun CameraContent(
                         expanded = expanded,
                         onExpandedChange = { expanded = it },
                         contentHeight = (height * 0.24f).coerceIn(150.dp, 260.dp),
+                        charsets = LiveCharsets,
+                        columnsRange = LiveColumns,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(start = 16.dp, end = 16.dp, top = 8.dp),
@@ -175,23 +179,7 @@ fun CameraContent(
 
 @Composable
 private fun CameraTopBar(photoColors: Boolean, onPhotoColorsChange: (Boolean) -> Unit, onBack: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        RoundButton(icon = R.drawable.ic_arrow_back, description = R.string.action_back, onClick = onBack)
-        Text(
-            stringResource(R.string.action_live_camera),
-            style = MaterialTheme.typography.titleMedium,
-            fontFamily = MonoFontFamily,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+    StudioTopBar(title = stringResource(R.string.action_live_camera), onBack = onBack) {
         RoundButton(
             icon = R.drawable.ic_palette,
             description = R.string.camera_photo_colors,
@@ -207,14 +195,13 @@ private fun CameraWindow(
     settings: StudioSettings,
     frontCamera: Boolean,
     unavailable: Boolean,
-    animate: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val colors = LocalCameraColors.current
+    val colors = LocalStudioColors.current
     val live = stringResource(R.string.camera_live)
     val charset = stringResource(settings.charset.label).uppercase()
     val status: (@Composable RowScope.() -> Unit)? = if (art != null && !unavailable) {
-        { BlinkingDot(live, animate) }
+        { BlinkingDot(live) }
     } else {
         null
     }
@@ -251,7 +238,7 @@ private fun CameraWindow(
                     .padding(32.dp),
             )
         } else if (art == null) {
-            TerminalLine(stringResource(R.string.camera_starting), animate, Modifier.align(Alignment.Center))
+            TerminalLine(stringResource(R.string.camera_starting), Modifier.align(Alignment.Center))
         }
     }
 }
@@ -284,7 +271,7 @@ private fun ShutterBar(
 /** The shutter as a glowing ring of ink that shrinks a little while pressed. */
 @Composable
 private fun ShutterButton(enabled: Boolean, onClick: () -> Unit) {
-    val colors = LocalCameraColors.current
+    val colors = LocalStudioColors.current
     val label = stringResource(R.string.camera_capture)
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
@@ -322,38 +309,33 @@ private fun ShutterButton(enabled: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** A round outlined button; with [checked] it is a toggle that turns to inverse video when on. */
+/** The four corner marks of a camera viewfinder. */
 @Composable
-private fun RoundButton(
-    @DrawableRes icon: Int,
-    @StringRes description: Int,
-    onClick: () -> Unit,
-    size: Dp = 44.dp,
-    checked: Boolean? = null,
-) {
-    val colors = LocalCameraColors.current
-    val label = stringResource(description)
-    val on = checked == true
-    val interaction = if (checked == null) {
-        Modifier.clickable(role = Role.Button, onClick = onClick)
-    } else {
-        Modifier.toggleable(value = checked, role = Role.Checkbox, onValueChange = { onClick() })
-    }
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(if (on) colors.ink else colors.paper.copy(alpha = 0.85f))
-            .border(1.5.dp, colors.ink.copy(alpha = if (on) 1f else 0.6f), CircleShape)
-            .then(interaction)
-            .semantics { contentDescription = label },
-    ) {
-        Icon(
-            painterResource(icon),
-            contentDescription = null,
-            tint = if (on) colors.paper else colors.ink,
-            modifier = Modifier.size(size * 0.5f),
-        )
+private fun ViewfinderCorners(color: Color, modifier: Modifier = Modifier, arm: Dp = 18.dp, width: Dp = 2.dp) {
+    Canvas(modifier) {
+        val a = arm.toPx()
+        val w = size.width
+        val h = size.height
+        val corners = Path().apply {
+            moveTo(0f, a)
+            lineTo(0f, 0f)
+            lineTo(a, 0f)
+            moveTo(w - a, 0f)
+            lineTo(w, 0f)
+            lineTo(w, a)
+            moveTo(w, h - a)
+            lineTo(w, h)
+            lineTo(w - a, h)
+            moveTo(a, h)
+            lineTo(0f, h)
+            lineTo(0f, h - a)
+        }
+        drawPath(corners, color, style = Stroke(width.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }
+
+/** Custom characters are edited in the editor; a keyboard would cover the camera. */
+private val LiveCharsets = CharsetPreset.entries.filter { it != CharsetPreset.CUSTOM }
+
+/** The preview converts at most [StudioSettings.MAX_LIVE_COLUMNS] columns. */
+private val LiveColumns = StudioSettings.MIN_COLUMNS..StudioSettings.MAX_LIVE_COLUMNS

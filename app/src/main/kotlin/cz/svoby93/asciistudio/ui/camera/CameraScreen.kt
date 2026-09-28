@@ -1,10 +1,7 @@
 package cz.svoby93.asciistudio.ui.camera
 
 import android.Manifest
-import android.animation.ValueAnimator
-import android.app.Activity
 import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -15,7 +12,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraInfoUnavailableException
 import androidx.camera.core.CameraSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +29,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +45,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -58,8 +52,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.svoby93.asciistudio.LocalAppContainer
 import cz.svoby93.asciistudio.R
-import cz.svoby93.asciistudio.data.ArtPalette
-import cz.svoby93.asciistudio.data.CameraBackground
+import cz.svoby93.asciistudio.ui.studio.LocalStudioColors
+import cz.svoby93.asciistudio.ui.studio.TerminalFrame
+import cz.svoby93.asciistudio.ui.studio.findActivity
 import java.util.concurrent.ExecutionException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -82,46 +77,28 @@ fun CameraScreen(onBack: () -> Unit, onCaptured: () -> Unit) {
         if (!granted && !askedOnce) requestPermission.launch(Manifest.permission.CAMERA)
     }
 
-    // The whole screen takes the colours of the art palette.
-    val settings by LocalAppContainer.current.settingsRepository.settings.collectAsStateWithLifecycle()
-    val palette = settings?.palette ?: ArtPalette.TERMINAL
-    val colors = remember(palette) { palette.cameraColors() }
-    // Respect the system "remove animations" setting: moving backgrounds and blinking stop.
-    val animate = remember { ValueAnimator.areAnimatorsEnabled() }
-    SystemBarsAppearance(light = colors.isLight)
-
-    CameraTheme(colors) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(colors.desk),
-        ) {
-            if (granted) {
-                LiveCamera(onBack = onBack, onCaptured = onCaptured, animate = animate)
-            } else {
-                val activity = context.findActivity()
-                // Once the user said "don't ask again" only the settings screen can help.
-                val canAskAgain = !askedOnce ||
-                    activity?.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) == true
-                PermissionRationale(
-                    background = settings?.cameraBackground ?: CameraBackground.ASCII,
-                    animate = animate,
-                    canAskAgain = canAskAgain,
-                    onRequest = { requestPermission.launch(Manifest.permission.CAMERA) },
-                    onOpenSettings = {
-                        context.startActivity(
-                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
-                        )
-                    },
-                    onBack = onBack,
+    if (granted) {
+        LiveCamera(onBack = onBack, onCaptured = onCaptured)
+    } else {
+        val activity = context.findActivity()
+        // Once the user said "don't ask again" only the settings screen can help.
+        val canAskAgain = !askedOnce ||
+            activity?.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) == true
+        PermissionRationale(
+            canAskAgain = canAskAgain,
+            onRequest = { requestPermission.launch(Manifest.permission.CAMERA) },
+            onOpenSettings = {
+                context.startActivity(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
                 )
-            }
-        }
+            },
+            onBack = onBack,
+        )
     }
 }
 
 @Composable
-private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit, animate: Boolean) {
+private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
     val container = LocalAppContainer.current
     val viewModel: CameraViewModel = viewModel {
         CameraViewModel(container.imageRepository, container.settingsRepository, container.optionsFactory)
@@ -180,7 +157,6 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit, animate: Bool
         frontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT,
         cameraUnavailable = cameraUnavailable,
         capturing = capturing,
-        animate = animate,
         onBack = onBack,
         onCapture = viewModel::capture,
         onSwitchCamera = viewModel::switchCamera,
@@ -191,16 +167,13 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit, animate: Bool
 
 @Composable
 private fun PermissionRationale(
-    background: CameraBackground,
-    animate: Boolean,
     canAskAgain: Boolean,
     onRequest: () -> Unit,
     onOpenSettings: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val colors = LocalCameraColors.current
+    val colors = LocalStudioColors.current
     Box(Modifier.fillMaxSize()) {
-        CameraBackdrop(background, animate, Modifier.fillMaxSize())
         TerminalFrame(
             title = stringResource(R.string.camera_permission_title),
             modifier = Modifier
@@ -238,35 +211,8 @@ private fun PermissionRationale(
     }
 }
 
-/**
- * Dark status and navigation bar icons on light palettes and light icons on dark ones, for as
- * long as the camera is shown.
- */
-@Composable
-private fun SystemBarsAppearance(light: Boolean) {
-    val view = LocalView.current
-    DisposableEffect(view, light) {
-        val window = view.context.findActivity()?.window ?: return@DisposableEffect onDispose { }
-        val controller = WindowCompat.getInsetsController(window, view)
-        val statusBars = controller.isAppearanceLightStatusBars
-        val navigationBars = controller.isAppearanceLightNavigationBars
-        controller.isAppearanceLightStatusBars = light
-        controller.isAppearanceLightNavigationBars = light
-        onDispose {
-            controller.isAppearanceLightStatusBars = statusBars
-            controller.isAppearanceLightNavigationBars = navigationBars
-        }
-    }
-}
-
 private fun Context.hasCameraPermission(): Boolean =
     ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}
 
 private suspend fun Context.cameraProvider(): ProcessCameraProvider = suspendCancellableCoroutine { continuation ->
     val future = ProcessCameraProvider.getInstance(this)

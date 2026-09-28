@@ -8,13 +8,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.core.content.IntentCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import cz.svoby93.asciistudio.ui.AsciiStudioNavHost
 import cz.svoby93.asciistudio.ui.EditorRoute
 import cz.svoby93.asciistudio.ui.HomeRoute
-import cz.svoby93.asciistudio.ui.theme.AsciiStudioTheme
+import cz.svoby93.asciistudio.ui.studio.StudioRoot
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 
@@ -24,7 +26,10 @@ class MainActivity : ComponentActivity() {
     private val sharedImages = Channel<Uri>(Channel.UNLIMITED)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val container = (application as AsciiStudioApp).container
+        // The screens take their colours from the stored palette; the splash screen covers the
+        // few milliseconds it takes to read it.
+        installSplashScreen().setKeepOnScreenCondition { container.settingsRepository.settings.value == null }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
@@ -32,10 +37,10 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) sharedImageUri(intent)?.let(sharedImages::trySend)
         addOnNewIntentListener { newIntent -> sharedImageUri(newIntent)?.let(sharedImages::trySend) }
 
-        val container = (application as AsciiStudioApp).container
         setContent {
-            AsciiStudioTheme {
-                CompositionLocalProvider(LocalAppContainer provides container) {
+            CompositionLocalProvider(LocalAppContainer provides container) {
+                val settings by container.settingsRepository.settings.collectAsStateWithLifecycle()
+                StudioRoot(settings) {
                     val navController = rememberNavController()
                     LaunchedEffect(navController) {
                         sharedImages.receiveAsFlow().collect { uri ->

@@ -29,7 +29,7 @@ enum class ExportAction(@StringRes val title: Int, @StringRes val supporting: In
     COPY(R.string.action_copy, R.string.export_copy_supporting, R.drawable.ic_content_copy),
     SHARE_TEXT(R.string.export_share_text, null, R.drawable.ic_share),
     SHARE_IMAGE(R.string.export_share_image, R.string.export_image_supporting, R.drawable.ic_image),
-    SAVE_GALLERY(R.string.export_save_gallery, null, R.drawable.ic_download),
+    SAVE_PICTURES(R.string.export_save_pictures, null, R.drawable.ic_download),
     SAVE_TXT(R.string.export_save_txt, null, R.drawable.ic_description),
     SAVE_HTML(R.string.export_save_html, R.string.export_html_supporting, R.drawable.ic_code),
     SAVE_ANSI(R.string.export_save_ansi, R.string.export_ansi_supporting, R.drawable.ic_terminal),

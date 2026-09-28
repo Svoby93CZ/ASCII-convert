@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import cz.svoby93.asciistudio.R
 import cz.svoby93.asciistudio.engine.Dithering
 import cz.svoby93.asciistudio.engine.EdgeMode
+import kotlinx.serialization.Serializable
 
 enum class CharsetPreset(@StringRes val label: Int) {
     STANDARD(R.string.charset_standard),
@@ -41,8 +42,8 @@ enum class ArtPalette(
     INK(R.string.palette_ink, 0xFFFFFFFF.toInt(), 0xFF000000.toInt(), isLight = true),
 }
 
-/** Decoration of the live camera screen behind its windows, drawn in the colours of the palette. */
-enum class CameraBackground(@StringRes val label: Int) {
+/** Decoration of the screens behind their windows, drawn in the colours of the palette. */
+enum class Backdrop(@StringRes val label: Int) {
     /** Characters that get denser towards the edges of the screen, like a vignette. */
     ASCII(R.string.background_ascii),
 
@@ -58,7 +59,11 @@ enum class CameraBackground(@StringRes val label: Int) {
     NONE(R.string.background_none),
 }
 
-/** Everything the user can tweak; persisted between sessions. */
+/**
+ * Everything the user can tweak; persisted between sessions. Gallery items keep a copy as JSON, so
+ * renamed properties fall back to their defaults there.
+ */
+@Serializable
 data class StudioSettings(
     val columns: Int = DEFAULT_COLUMNS,
     val charset: CharsetPreset = CharsetPreset.STANDARD,
@@ -73,8 +78,11 @@ data class StudioSettings(
     val edgeSensitivity: Float = 0.55f,
     val colorMode: ColorMode = ColorMode.PALETTE,
     val palette: ArtPalette = ArtPalette.TERMINAL,
-    val cameraBackground: CameraBackground = CameraBackground.ASCII,
+    val backdrop: Backdrop = Backdrop.ASCII,
 ) {
+    /** The same art, whatever the decoration of the screens around it. */
+    fun sameArtAs(other: StudioSettings): Boolean = copy(backdrop = other.backdrop) == other
+
     companion object {
         const val MIN_COLUMNS = 20
         const val MAX_COLUMNS = 300
