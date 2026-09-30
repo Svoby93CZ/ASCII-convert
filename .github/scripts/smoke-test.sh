@@ -163,7 +163,7 @@ tap "Show original"
 tap "Export" && screen 10-export-sheet 3
 adb shell input keyevent KEYCODE_BACK
 sleep 2
-tap "Save to gallery" && screen 10-saved-to-gallery 3
+tap "Save to collection" && screen 10-saved-to-collection 3
 
 echo "### Landscape editor"
 adb shell wm user-rotation lock 1 || adb shell settings put system user_rotation 1
@@ -176,14 +176,14 @@ echo "### Back home"
 adb shell input keyevent KEYCODE_BACK
 screen 12-home-continue 4
 
-echo "### Gallery"
-tap "Gallery" && screen 12-gallery 3
+echo "### Collection"
+tap "Collection" && screen 12-collection 3
 # The saved art opens in the editor with its settings.
-tap "ASCII art" && screen 12-gallery-opened 6
-alive gallery
+tap "ASCII art" && screen 12-collection-opened 6
+alive collection
 adb shell input keyevent KEYCODE_BACK
 sleep 2
-tap "Delete" && screen 12-gallery-delete 2 && tap "Delete" && screen 12-gallery-empty 2
+tap "Delete" && screen 12-collection-delete 2 && tap "Delete" && screen 12-collection-empty 2
 adb shell input keyevent KEYCODE_BACK
 sleep 2
 
@@ -218,7 +218,7 @@ sleep 1
 tap "Pokračovat v úpravách" && screen 16-editor-cs-dark 6
 adb shell input keyevent KEYCODE_BACK
 sleep 2
-tap "Galerie" && screen 16-gallery-cs 3
+tap "Sbírka" && screen 16-collection-cs 3
 adb shell input keyevent KEYCODE_BACK
 sleep 2
 tap "Živá ASCII kamera" && screen 17-camera-cs 8

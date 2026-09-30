@@ -24,7 +24,7 @@ ASCII Studio promění vaše fotky v umění složené ze znaků. Vyberte fotku 
 
 HLAVNÍ FUNKCE
 • Živá ASCII kamera: obraz se převádí na znaky v reálném čase, znaky, šířku, barvy i pozadí nastavíte přímo v kameře a fotku pak doladíte v editoru
-• Galerie: ASCII arty si uložíte i s fotkou a nastavením a kdykoli je znovu otevřete a upravíte
+• Sbírka: ASCII arty si uložíte i s fotkou a nastavením a kdykoli je znovu otevřete a upravíte
 • Retro vzhled: okna ve stylu terminálu a pozadí s padajícími znaky, mřížkou nebo CRT monitorem, vše v barvách zvolené palety
 • Okamžitý náhled s přibližováním dvěma prsty a porovnáním s originálem
 • Sady znaků: standardní, detailní, bloky ░▒▓█, Braille s dvojnásobným rozlišením, binární 0 a 1 i vlastní znaky
@@ -67,7 +67,7 @@ ASCII Studio turns your photos into art made of characters. Pick a photo from yo
 
 FEATURES
 • Live ASCII camera: see the camera image as characters in real time, set the characters, width, colors and background right in the camera, then fine-tune the photo in the editor
-• Gallery: keep your ASCII art together with its photo and settings, open it again and keep editing any time
+• Collection: keep your ASCII art together with its photo and settings, open it again and keep editing any time
 • Retro look: terminal-style windows and backgrounds with falling characters, a grid or a CRT monitor, all in the colors of the chosen palette
 • Instant preview with pinch to zoom and a comparison with the original
 • Character sets: standard, detailed, blocks ░▒▓█, Braille with double resolution, binary 0 and 1, or your own characters

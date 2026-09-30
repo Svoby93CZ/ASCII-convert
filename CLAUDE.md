@@ -104,10 +104,12 @@ application ID is tied to the Google Play entry and must never change.
   `SavedStateHandle` flag.
 - **Gallery:** `GalleryRepository` keeps saved art in `noBackupFilesDir/gallery`, one folder per
   item with the photo, a JPEG preview from `ArtExporter.writePreview` and `item.json` (settings
-  and art size). Items are written to a `.tmp` folder and renamed when complete. The editor's
-  "Save to gallery" adds an item unless the gallery already holds this photo with the same art
-  settings; `EditorRoute(galleryId)` opens an item again, bringing back its photo and settings.
-  The privacy policy promises that the gallery stays on the device and is not backed up.
+  and art size). Items are written to a `.tmp` folder and renamed when complete. The UI calls it
+  the collection („Sbírka“), because users know the gallery as the system photo app; code, string
+  keys and the folder keep the name gallery. The editor's "Save to collection" adds an item
+  unless the collection already holds this photo with the same art settings;
+  `EditorRoute(galleryId)` opens an item again, bringing back its photo and settings. The privacy
+  policy promises that the collection stays on the device and is not backed up.
 - **Editor:** `EditorViewModel` combines the image and the settings into `AsciiOptions`, then
   converts with `mapLatest` on `Dispatchers.Default`. Palette-only changes do not reconvert.
   `EditorControls` holds the Style, Tone and Colors controls; `SettingsWindow` shows them in the

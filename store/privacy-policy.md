@@ -17,12 +17,12 @@ zařízení. Aplikace nemá oprávnění k přístupu na internet.
   mohli v úpravách pokračovat. Při otevření dalšího obrázku se kopie přepíše.
 - **Kamera.** Oprávnění ke kameře aplikace používá jen pro živou ASCII kameru a pro pořízení
   fotky, o které sami požádáte. Obraz z kamery se zpracovává jen v zařízení.
-- **Galerie.** ASCII arty, které uložíte do galerie aplikace, uchovává aplikace ve svém
+- **Sbírka.** ASCII arty, které uložíte do sbírky v aplikaci, uchovává aplikace ve svém
   soukromém úložišti spolu se zmenšenou kopií fotky a nastavením, se kterým vznikly. Zůstanou
-  tam, dokud je v galerii nesmažete.
+  tam, dokud je ze sbírky nesmažete.
 - **Nastavení** (například sada znaků, šířka nebo barvy) se ukládá v zařízení. Pokud máte
   zapnuté zálohování Androidu, může být součástí zálohy vašeho zařízení u Googlu. Obrázky ani
-  galerie se nezálohují.
+  sbírka se nezálohují.
 - **Export.** Výsledky se uloží nebo předají jen tam, kam sami zvolíte: do složky
   Obrázky/ASCII Studio, do souboru nebo do jiné aplikace přes sdílení. Oprávnění k zápisu do
   úložiště aplikace žádá jen na Androidu 9 a starším, aby mohla uložit obrázek do složky Obrázky.
@@ -37,7 +37,7 @@ zařízení. Aplikace nemá oprávnění k přístupu na internet.
 
 Všechna data aplikace zůstávají ve vašem zařízení. Smažete je odinstalováním aplikace nebo
 v nastavení Androidu (Aplikace → ASCII Studio → Úložiště → Vymazat data). Jednotlivé ASCII arty
-smažete v galerii aplikace. Obrázky uložené do složky Obrázky spravujete stejně jako ostatní fotky.
+smažete ve sbírce v aplikaci. Obrázky uložené do složky Obrázky spravujete stejně jako ostatní fotky.
 
 ## Děti
 
@@ -72,12 +72,12 @@ your device. The app has no permission to access the internet.
   continue editing. Opening another image replaces the copy.
 - **Camera.** The camera permission is used only for the live ASCII camera and for taking a
   photo when you ask for it. Camera images are processed only on your device.
-- **Gallery.** ASCII art you save to the app's gallery is kept in the app's private storage
+- **Collection.** ASCII art you save to the app's collection is kept in the app's private storage
   together with a reduced copy of its photo and the settings it was made with. It stays there
-  until you delete it in the gallery.
+  until you delete it from the collection.
 - **Settings** (such as the character set, width or colors) are stored on your device. If
   Android backup is turned on, they may be included in your device backup with Google. Images
-  and the gallery are not backed up.
+  and the collection are not backed up.
 - **Export.** Results are saved or handed over only where you choose: to the Pictures/ASCII
   Studio folder, to a file or to another app through sharing. The app asks for the storage write
   permission only on Android 9 and older, to save images to the Pictures folder.
@@ -92,7 +92,7 @@ your device. The app has no permission to access the internet.
 
 All app data stays on your device. You can delete it by uninstalling the app or in Android
 settings (Apps → ASCII Studio → Storage → Clear data). You delete single ASCII art in the app's
-gallery. Images saved to the Pictures folder are managed like any other photos.
+collection. Images saved to the Pictures folder are managed like any other photos.
 
 ## Children
 

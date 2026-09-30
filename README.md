@@ -35,9 +35,9 @@ v telefonu, bez internetu a bez odesílání dat.
   sadu znaků, šířku, obrysy, barvy i tón.
 - **Editor s okamžitým náhledem** – přibližování dvěma prsty, posun, dvojité klepnutí,
   porovnání s originálem. Nastavení je v okně se záložkami stejně jako v kameře.
-- **Galerie** – ASCII arty uložené z editoru zůstávají v aplikaci i s fotkou a nastavením, takže
+- **Sbírka** – ASCII arty uložené z editoru zůstávají v aplikaci i s fotkou a nastavením, takže
   je jde kdykoli znovu otevřít, upravit nebo smazat.
-- **Vzhled terminálu v celé aplikaci** – úvodní obrazovka, editor, galerie i kamera mají okna
+- **Vzhled terminálu v celé aplikaci** – úvodní obrazovka, editor, sbírka i kamera mají okna
   v rámečcích ve stylu terminálových programů a barví se podle zvolené palety. Za okny je pozadí
   podle výběru: ASCII vinětace, padající znaky, mřížka, CRT monitor nebo jednobarevné.
 - **Sady znaků:** standardní, detailní (28 úrovní), bloky `░▒▓█`, **Braille** (2×4 body na
@@ -175,9 +175,9 @@ ASCII-convert/
 │   ├── PhotoColors      barvy z fotky čitelné na papíru palety, barevné dlaždice
 │   └── Donut            animace z úvodní obrazovky
 └── app/      Android aplikace (Jetpack Compose)
-    ├── data/     nastavení (DataStore), načítání obrázků, galerie, export a sdílení
+    ├── data/     nastavení (DataStore), načítání obrázků, sbírka, export a sdílení
     ├── render/   kreslení ASCII artu na Canvas, měření znaků vlastního písma
-    └── ui/       společný vzhled (studio), domovská obrazovka, editor, galerie, živá kamera
+    └── ui/       společný vzhled (studio), domovská obrazovka, editor, sbírka, živá kamera
 ```
 
 - **Engine** pracuje s polem pixelů (`IntArray` ve formátu ARGB), takže je rychlý,
@@ -204,12 +204,12 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 
 - `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, barvy z fotky,
   export).
-- `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore, galerie
+- `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore, sbírka
   na disku a kontrast textů ve všech paletách.
 - **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug
   i release APK. S uloženým klíčem pro nahrávání připraví i bundle pro Google Play.
 - **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,
-  export, galerie, otočení na šířku, živá kamera, čeština a tmavý režim. Při pádu aplikace selže.
+  export, sbírka, otočení na šířku, živá kamera, čeština a tmavý režim. Při pádu aplikace selže.
   Spouští se ručně v záložce *Actions* nebo pushem commitu, který má v popisu `[emulator]`.
 
 ## Licence třetích stran
