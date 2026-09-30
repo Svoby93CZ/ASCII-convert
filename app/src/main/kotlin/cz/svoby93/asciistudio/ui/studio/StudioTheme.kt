@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -33,8 +34,45 @@ data class StudioColors(
     val desk: Color,
     val isLight: Boolean,
 ) {
+    /** Secondary texts: dimmer than [ink], but readable in windows and on the desk in every palette. */
+    val secondary: Color = readableTint(SECONDARY_AMOUNT, TEXT_CONTRAST, listOf(paper, desk))
+
+    /** Outlines of controls such as switches and text fields, which all sit in windows. */
+    val outline: Color = readableTint(OUTLINE_AMOUNT, CONTROL_CONTRAST, listOf(paper))
+
     /** Mixes [ink] into [paper]: 0 is pure paper, 1 is pure ink. */
     fun tint(amount: Float): Color = lerp(paper, ink, amount)
+
+    /**
+     * [tint] with at least [amount] of ink, and more where the palette needs it to reach [contrast]
+     * (the WCAG contrast ratio) against every one of [backgrounds].
+     */
+    fun readableTint(amount: Float, contrast: Float, backgrounds: List<Color>): Color {
+        var mix = amount
+        while (mix < 1f && backgrounds.any { contrastRatio(tint(mix), it) < contrast }) {
+            mix = (mix + CONTRAST_STEP).coerceAtMost(1f)
+        }
+        return tint(mix)
+    }
+
+    private companion object {
+        const val SECONDARY_AMOUNT = 0.72f
+        const val OUTLINE_AMOUNT = 0.5f
+
+        /** WCAG AA for normal text. */
+        const val TEXT_CONTRAST = 4.5f
+
+        /** WCAG AA for the boundaries of controls. */
+        const val CONTROL_CONTRAST = 3f
+        const val CONTRAST_STEP = 0.01f
+    }
+}
+
+/** The WCAG contrast ratio of two colours, from 1 (the same) to 21 (black on white). */
+fun contrastRatio(a: Color, b: Color): Float {
+    val lighter = maxOf(a.luminance(), b.luminance())
+    val darker = minOf(a.luminance(), b.luminance())
+    return (lighter + 0.05f) / (darker + 0.05f)
 }
 
 fun ArtPalette.studioColors(): StudioColors {
@@ -110,11 +148,11 @@ private fun StudioColors.colorScheme(): ColorScheme {
         surface = paper,
         onSurface = ink,
         surfaceVariant = tint(0.12f),
-        onSurfaceVariant = tint(0.72f),
+        onSurfaceVariant = secondary,
         surfaceTint = ink,
         inverseSurface = ink,
         inverseOnSurface = paper,
-        outline = tint(0.5f),
+        outline = outline,
         outlineVariant = tint(0.24f),
         surfaceBright = tint(0.1f),
         surfaceDim = paper,

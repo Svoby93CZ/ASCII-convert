@@ -54,9 +54,9 @@ v telefonu, bez internetu a bez odesílání dat.
   čitelný i ve stínech. **Barevné dlaždice** pod znaky vrátí barvy fotky jako mozaiku.
 - **Export:** kopírování textu, sdílení textu nebo PNG, uložení do složky
   `Obrázky/ASCII Studio`, TXT, barevné HTML a ANSI pro terminál (`cat obrazek.ans`).
-- Material 3 v barvách zvolené palety, edge-to-edge, prediktivní gesto zpět, rozložení pro
-  tablety a na šířku, čeština a angličtina (jazyk lze nastavit pro aplikaci zvlášť v nastavení
-  Androidu 13+).
+- Material 3 v barvách zvolené palety s kontrastem textů podle WCAG, edge-to-edge, prediktivní
+  gesto zpět, rozložení pro tablety a na šířku, čeština a angličtina (jazyk lze nastavit pro
+  aplikaci zvlášť v nastavení Androidu 13+).
 - Nastavení se pamatuje a rozpracovaný obrázek přežije i ukončení aplikace systémem.
 
 ## Instalace hotového APK
@@ -204,8 +204,8 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 
 - `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, barvy z fotky,
   export).
-- `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore a galerie
-  na disku.
+- `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore, galerie
+  na disku a kontrast textů ve všech paletách.
 - **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug
   i release APK. S uloženým klíčem pro nahrávání připraví i bundle pro Google Play.
 - **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,

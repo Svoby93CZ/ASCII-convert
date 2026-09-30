@@ -165,7 +165,7 @@ private fun TabStrip(selected: SettingsTab, onSelect: (SettingsTab) -> Unit) {
                 Text(
                     stringResource(tab.label).uppercase(),
                     style = TerminalLabelStyle.copy(fontSize = 13.sp, letterSpacing = 0.5.sp),
-                    color = if (isSelected) colors.paper else colors.tint(0.75f),
+                    color = if (isSelected) colors.paper else colors.secondary,
                     maxLines = 1,
                 )
             }

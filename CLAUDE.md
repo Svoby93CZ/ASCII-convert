@@ -11,7 +11,7 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
 ./gradlew :engine:test                                   # conversion engine, plain JVM
 ./gradlew :engine:test --tests '*AsciiConverterTest'     # one class
 ./gradlew :engine:test --tests '*AsciiConverterTest.invert swaps paper and ink'  # one test (backtick names)
-./gradlew :app:testDebugUnitTest                         # SettingsRepositoryTest on a real DataStore file
+./gradlew :app:testDebugUnitTest                         # settings (real DataStore), gallery, contrast
 ./gradlew :app:lintDebug                                 # lint errors fail CI
 ./gradlew :app:assembleDebug                             # also :app:assembleRelease, :app:installDebug
 ```
@@ -123,8 +123,11 @@ application ID is tied to the Google Play entry and must never change.
     system bar icons and draws `StudioBackdrop` once behind all screens, so screens are
     transparent and the background stays put during transitions.
   - `StudioTheme` derives a Material `ColorScheme` and `StudioColors` (ink, paper, desk) from
-    `ArtPalette`; `LocalAnimationsEnabled` is false when `ValueAnimator.areAnimatorsEnabled()`
-    is, and then backgrounds and blinking stand still.
+    `ArtPalette`. Secondary texts and control outlines (`StudioColors.secondary`, `outline`) get
+    more ink where a palette needs it for WCAG contrast (4.5:1 for text, 3:1 for controls);
+    `StudioColorsTest` checks every palette. Compose's `lerp` mixes colours in Oklab.
+    `LocalAnimationsEnabled` is false when `ValueAnimator.areAnimatorsEnabled()` is, and then
+    backgrounds and blinking stand still.
   - Windows are `TerminalFrame`s (labels set into the border), `SettingsWindow` is the tabbed
     settings window shared by the editor and the camera, and `StudioChrome` has the top bar,
     `RoundButton` and `TerminalDialog`.
