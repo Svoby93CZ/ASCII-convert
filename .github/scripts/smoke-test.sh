@@ -78,6 +78,20 @@ tap() { # label... [x y]: taps the first label found, or the fallback position w
   sleep 1
 }
 
+drag_up() { # label: drags the scrollable content under the label up, to show what is below it
+  dump current
+  local target
+  target=$(python3 "$UI" find "$OUT/current.xml" "$1")
+  if [ -z "$target" ]; then
+    echo "!!! could not find '$1' on screen"
+    failures=$((failures + 1))
+    return 1
+  fi
+  set -- $target
+  adb shell input swipe "$1" "$2" "$1" $(( $2 - 400 )) 500
+  sleep 1
+}
+
 app_log() {
   echo "----- app log -----"
   adb logcat -d -s AsciiStudio:V | tail -n 40
@@ -155,7 +169,7 @@ echo "### Editor controls"
 tap "Tone" && screen 05-tone 3
 tap "Colors" && tap "Photo colors" && screen 06-photo-colors 3
 # Color tiles stay on, so the later steps draw them too: Braille, the saved preview and the camera.
-tap "Color tiles" && screen 06-color-tiles 3
+drag_up "Glyph color" && tap "Color tiles" && screen 06-color-tiles 3
 tap "Style" && tap "Braille" && screen 07-braille 3
 tap "Detailed" && tap "Mixed" && screen 08-outlines 3
 tap "Show original" && screen 09-original 3
