@@ -32,7 +32,7 @@ HLAVNÍ FUNKCE
 • Úpravy tónu: automatické úrovně, jas, kontrast, ostrost a invertování
 • Dithering Floyd–Steinberg, Atkinson a Bayer
 • Obrysy: detekce hran kreslí linky znaky | / - \
-• Barvy: 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo barvy přímo z fotky
+• Barvy: 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo barvy přímo z fotky, které zůstanou čitelné i ve stínech, a barevné dlaždice pod znaky
 
 EXPORT
 • Kopírování textu do schránky
@@ -75,7 +75,7 @@ FEATURES
 • Tone controls: auto levels, brightness, contrast, sharpness and invert
 • Floyd–Steinberg, Atkinson and Bayer dithering
 • Outlines: edge detection draws lines with the characters | / - \
-• Colors: 10 palettes (Terminal, Amber, Ruby, Ice, Night, Synthwave, Blueprint, LCD, Paper, Ink) or the colors of the photo itself
+• Colors: 10 palettes (Terminal, Amber, Ruby, Ice, Night, Synthwave, Blueprint, LCD, Paper, Ink) or the colors of the photo itself, readable even in the shadows, with optional color tiles behind the characters
 
 EXPORT
 • Copy the text to the clipboard

@@ -78,6 +78,8 @@
     <string name="label_color_mode">Barva znaků</string>
     <string name="color_mode_palette">Podle palety</string>
     <string name="color_mode_photo">Barvy fotky</string>
+    <string name="label_color_tiles">Barevné dlaždice</string>
+    <string name="color_tiles_supporting">Pod každým znakem tlumená dlaždice v barvě fotky</string>
     <string name="label_palette">Paleta</string>
     <string name="palette_terminal">Terminál</string>
     <string name="palette_amber">Jantar</string>

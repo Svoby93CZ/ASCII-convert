@@ -1,6 +1,5 @@
 package cz.svoby93.asciistudio.render
 
-import cz.svoby93.asciistudio.data.ArtPalette
 import cz.svoby93.asciistudio.data.CharsetPreset
 import cz.svoby93.asciistudio.data.ColorMode
 import cz.svoby93.asciistudio.data.StudioSettings
@@ -40,6 +39,9 @@ class AsciiOptionsFactory(
 }
 
 /** Colours for rendering art with the given settings. */
-fun StudioSettings.artStyle(): ArtStyle = palette.artStyle(colored = colorMode == ColorMode.PHOTO)
-
-fun ArtPalette.artStyle(colored: Boolean): ArtStyle = ArtStyle(background, foreground, colored)
+fun StudioSettings.artStyle(): ArtStyle = ArtStyle(
+    background = palette.background,
+    foreground = palette.foreground,
+    glyphColors = if (colorMode == ColorMode.PHOTO) GlyphColors.PHOTO else GlyphColors.INK,
+    tiles = colorTiles,
+)

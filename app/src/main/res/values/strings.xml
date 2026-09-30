@@ -81,6 +81,8 @@
     <string name="label_color_mode">Glyph color</string>
     <string name="color_mode_palette">Palette</string>
     <string name="color_mode_photo">Photo colors</string>
+    <string name="label_color_tiles">Color tiles</string>
+    <string name="color_tiles_supporting">A muted tile in the photo\'s color behind every character</string>
     <string name="label_palette">Palette</string>
     <string name="palette_terminal">Terminal</string>
     <string name="palette_amber">Amber</string>

@@ -187,6 +187,12 @@ fun ColorControls(settings: StudioSettings, onChange: SettingsChange) {
             },
             onSelect = { mode -> onChange { it.copy(colorMode = mode) } },
         )
+        SwitchRow(
+            title = R.string.label_color_tiles,
+            supporting = R.string.color_tiles_supporting,
+            checked = settings.colorTiles,
+            onCheckedChange = { checked -> onChange { it.copy(colorTiles = checked) } },
+        )
         SectionLabel(R.string.label_palette)
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),

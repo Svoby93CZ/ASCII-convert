@@ -154,6 +154,8 @@ app_log
 echo "### Editor controls"
 tap "Tone" && screen 05-tone 3
 tap "Colors" && tap "Photo colors" && screen 06-photo-colors 3
+# Color tiles stay on, so the later steps draw them too: Braille, the saved preview and the camera.
+tap "Color tiles" && screen 06-color-tiles 3
 tap "Style" && tap "Braille" && screen 07-braille 3
 tap "Detailed" && tap "Mixed" && screen 08-outlines 3
 tap "Show original" && screen 09-original 3

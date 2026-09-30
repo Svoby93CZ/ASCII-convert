@@ -75,8 +75,13 @@ application ID is tied to the Google Play entry and must never change.
   `AsciiOptionsFactory` (`invert = settings.invert != palette.isLight`).
 - The converter's `cellAspect` must match the renderer's font cell. `AppContainer` passes
   `AsciiRenderer.textCellAspect` into `AsciiOptionsFactory`. Braille always uses 0.5.
-- `AsciiArt` holds the glyphs plus the average source colour of every cell, which is used for
-  photo-colour rendering and for the HTML/ANSI export in `AsciiExport`.
+- `AsciiArt` holds the glyphs plus the average source colour of every cell; its alpha is how much
+  of the cell the picture covers.
+- `PhotoColors` turns these colours into glyph colours and color tiles. The glyph density already
+  carries the brightness, so a glyph takes only the hue and saturation of its cell, at a WCAG
+  contrast on the paper (4.5:1 on dark paper, 7:1 on light paper). Tiles mix 30 % of the cell
+  colour into the paper. The renderer and `AsciiExport` (which takes plain colour arrays) share it,
+  so the screen, PNG, HTML and ANSI match.
 
 ### App (`app/`)
 
@@ -107,10 +112,12 @@ application ID is tied to the Google Play entry and must never change.
   converts with `mapLatest` on `Dispatchers.Default`. Palette-only changes do not reconvert.
   `EditorControls` holds the Style, Tone and Colors controls; `SettingsWindow` shows them in the
   editor and in the camera.
-- **Rendering:** `AsciiRenderer` draws on an Android `Canvas`, one `drawText` per row. Photo
-  colours come from a `BitmapShader` with one pixel per cell and nearest-neighbour filtering.
-  Braille is drawn as real dots. `AsciiArtView` adds fit, zoom and pan. `ArtExporter` renders
-  PNGs and writes TXT, HTML and ANSI.
+- **Rendering:** `AsciiRenderer` draws on an Android `Canvas`, one `drawText` per row.
+  `ArtStyle.glyphColors` says where glyph colours come from: the palette ink, `PhotoColors` or
+  the art itself (the donut). They come from a `BitmapShader` with one pixel per cell and
+  nearest-neighbour filtering, cached per art and paper; color tiles are one rectangle with
+  another such shader. Braille is drawn as real dots. `AsciiArtView` adds fit, zoom and pan.
+  `ArtExporter` renders PNGs and writes TXT, HTML and ANSI.
 - **Look (`ui/studio`):** every screen takes its colours from the art palette.
   - `StudioRoot` (around the navigation graph in `MainActivity`) applies `StudioTheme`, sets the
     system bar icons and draws `StudioBackdrop` once behind all screens, so screens are

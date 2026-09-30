@@ -50,7 +50,8 @@ v telefonu, bez internetu a bez odesílání dat.
 - **Obrysy:** detekce hran (Sobel + tenzor struktury) kreslí linky znaky `| / - \`,
   v kombinaci s tóny nebo samostatně.
 - **Barvy:** 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo
-  barvy z fotky pro každý znak zvlášť.
+  barvy z fotky. Znak převezme odstín své části fotky a jas nechá na hustotě znaků, takže je
+  čitelný i ve stínech. **Barevné dlaždice** pod znaky vrátí barvy fotky jako mozaiku.
 - **Export:** kopírování textu, sdílení textu nebo PNG, uložení do složky
   `Obrázky/ASCII Studio`, TXT, barevné HTML a ANSI pro terminál (`cat obrazek.ans`).
 - Material 3 v barvách zvolené palety, edge-to-edge, prediktivní gesto zpět, rozložení pro
@@ -171,6 +172,7 @@ ASCII-convert/
 │   ├── AsciiConverter   vzorkování → tóny → dithering → znaky (+ obrysy, Braille)
 │   ├── CharRamp(s)      sady znaků s naměřenou hustotou inkoustu
 │   ├── AsciiExport      HTML a ANSI export
+│   ├── PhotoColors      barvy z fotky čitelné na papíru palety, barevné dlaždice
 │   └── Donut            animace z úvodní obrazovky
 └── app/      Android aplikace (Jetpack Compose)
     ├── data/     nastavení (DataStore), načítání obrázků, galerie, export a sdílení
@@ -186,8 +188,9 @@ ASCII-convert/
   zahodí.
 - **Renderer** kreslí každý řádek jedním voláním `drawText`. Barvy z fotky zajišťuje
   `BitmapShader` s jedním pixelem na znak (nearest-neighbour), takže i barevný náhled se
-  vykresluje stejně rychle jako jednobarevný. Braille se kreslí jako skutečné body, proto je
-  ostrý a zarovnaný na všech zařízeních.
+  vykresluje stejně rychle jako jednobarevný. Barevné dlaždice jsou jeden obdélník se stejným
+  shaderem. Braille se kreslí jako skutečné body, proto je ostrý a zarovnaný na všech
+  zařízeních.
 - **Kamera** (CameraX): analýza snímků v nízkém rozlišení pro živý náhled a samostatné
   `ImageCapture` pro ostrou fotku.
 - Závislosti se předávají ručně přes `AppContainer` – pro aplikaci této velikosti je to
@@ -199,7 +202,8 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 
 ## Testy a CI
 
-- `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, export).
+- `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, barvy z fotky,
+  export).
 - `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore a galerie
   na disku.
 - **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug

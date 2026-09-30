@@ -19,7 +19,7 @@ enum class ColorMode {
     /** Every glyph uses the palette's foreground colour. */
     PALETTE,
 
-    /** Every glyph keeps the colour of the part of the photo it represents. */
+    /** Every glyph takes the hue of the part of the photo it represents. */
     PHOTO,
 }
 
@@ -77,6 +77,8 @@ data class StudioSettings(
     val edgeMode: EdgeMode = EdgeMode.OFF,
     val edgeSensitivity: Float = 0.55f,
     val colorMode: ColorMode = ColorMode.PALETTE,
+    /** A muted colour of the photo behind every glyph, like a mosaic. */
+    val colorTiles: Boolean = false,
     val palette: ArtPalette = ArtPalette.TERMINAL,
     val backdrop: Backdrop = Backdrop.ASCII,
 ) {

@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import cz.svoby93.asciistudio.engine.Donut
 import cz.svoby93.asciistudio.render.ArtStyle
+import cz.svoby93.asciistudio.render.GlyphColors
 import cz.svoby93.asciistudio.ui.components.AsciiArtView
 import cz.svoby93.asciistudio.ui.studio.LocalAnimationsEnabled
 import cz.svoby93.asciistudio.ui.studio.LocalStudioColors
@@ -42,7 +43,7 @@ fun DonutHero(modifier: Modifier = Modifier) {
 
     AsciiArtView(
         art = art,
-        style = ArtStyle(colors.paper.toArgb(), colors.ink.toArgb(), colored = true),
+        style = ArtStyle(colors.paper.toArgb(), colors.ink.toArgb(), GlyphColors.ART),
         modifier = modifier,
         interactive = false,
         contentPadding = 16.dp,

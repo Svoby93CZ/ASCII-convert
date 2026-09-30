@@ -50,10 +50,16 @@ class ArtExporter(
             art,
             background = style.background,
             foreground = style.foreground,
-            colored = style.colored,
+            glyphColors = style.glyphColorsOf(art),
+            tileColors = style.tileColorsOf(art),
             title = context.getString(R.string.app_name),
         )
-        TextFormat.ANSI -> AsciiExport.toAnsi(art, style.foreground, style.colored)
+        TextFormat.ANSI -> AsciiExport.toAnsi(
+            art,
+            foreground = style.foreground,
+            glyphColors = style.glyphColorsOf(art),
+            tileColors = style.tileColorsOf(art),
+        )
     }
 
     fun suggestedFileName(format: TextFormat): String = "${baseFileName()}.${format.extension}"

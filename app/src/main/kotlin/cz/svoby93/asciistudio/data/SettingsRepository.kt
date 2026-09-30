@@ -89,6 +89,7 @@ class SettingsRepository(
             edgeMode = enumOrDefault(this[EDGE_MODE], defaults.edgeMode),
             edgeSensitivity = this[EDGE_SENSITIVITY] ?: defaults.edgeSensitivity,
             colorMode = enumOrDefault(this[COLOR_MODE], defaults.colorMode),
+            colorTiles = this[COLOR_TILES] ?: defaults.colorTiles,
             palette = enumOrDefault(this[PALETTE], defaults.palette),
             backdrop = enumOrDefault(this[BACKDROP], defaults.backdrop),
         )
@@ -107,6 +108,7 @@ class SettingsRepository(
         this[EDGE_MODE] = settings.edgeMode.name
         this[EDGE_SENSITIVITY] = settings.edgeSensitivity
         this[COLOR_MODE] = settings.colorMode.name
+        this[COLOR_TILES] = settings.colorTiles
         this[PALETTE] = settings.palette.name
         this[BACKDROP] = settings.backdrop.name
     }
@@ -129,6 +131,7 @@ class SettingsRepository(
         val EDGE_MODE = stringPreferencesKey("edge_mode")
         val EDGE_SENSITIVITY = floatPreferencesKey("edge_sensitivity")
         val COLOR_MODE = stringPreferencesKey("color_mode")
+        val COLOR_TILES = booleanPreferencesKey("color_tiles")
         val PALETTE = stringPreferencesKey("palette")
         // Keeps its old name from when only the live camera had a background.
         val BACKDROP = stringPreferencesKey("camera_background")
