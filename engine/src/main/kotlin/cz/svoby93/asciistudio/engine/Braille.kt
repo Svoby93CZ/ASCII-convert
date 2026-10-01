@@ -6,6 +6,9 @@ object Braille {
     const val DOTS_X: Int = 2
     const val DOTS_Y: Int = 4
 
+    /** Diameter of a drawn dot relative to the dot pitch, on screen and in exports. */
+    const val DOT_SIZE: Float = 0.78f
+
     /** Dot bit masks indexed by `[row][column]`, as defined by the Unicode standard. */
     private val BITS = arrayOf(
         intArrayOf(0x01, 0x08),
@@ -15,6 +18,8 @@ object Braille {
     )
 
     fun bit(dotX: Int, dotY: Int): Int = BITS[dotY][dotX]
+
+    fun isPattern(glyph: Char): Boolean = glyph in BLANK..'\u28FF'
 
     fun isRaised(glyph: Char, dotX: Int, dotY: Int): Boolean =
         ((glyph.code - BLANK.code) and bit(dotX, dotY)) != 0

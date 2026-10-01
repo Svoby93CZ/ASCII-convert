@@ -21,6 +21,8 @@ kotlin {
 
 tasks.test {
     useJUnit()
+    // The font tests read the font the app ships.
+    systemProperty("appFont", rootProject.file("app/src/main/res/font/jetbrains_mono_regular.ttf").path)
     testLogging {
         events(TestLogEvent.FAILED)
         exceptionFormat = TestExceptionFormat.FULL
