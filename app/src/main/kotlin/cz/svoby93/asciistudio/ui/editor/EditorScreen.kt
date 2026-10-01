@@ -74,7 +74,10 @@ fun EditorScreen(onBack: () -> Unit) {
                     } catch (_: ActivityNotFoundException) {
                         launch { snackbarHostState.showSnackbar(resources.getString(R.string.message_export_failed)) }
                     }
-                    is EditorEffect.Message -> launch { snackbarHostState.showSnackbar(resources.getString(effect.text)) }
+                    is EditorEffect.Message -> launch {
+                        val duration = if (effect.long) SnackbarDuration.Long else SnackbarDuration.Short
+                        snackbarHostState.showSnackbar(resources.getString(effect.text), duration = duration)
+                    }
                     is EditorEffect.Undoable -> launch {
                         val offer = launch {
                             val result = snackbarHostState.showSnackbar(

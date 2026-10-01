@@ -61,7 +61,8 @@ sealed interface EditorEffect {
     /** Start an activity, e.g. the share sheet. */
     data class Launch(val intent: Intent) : EditorEffect
 
-    data class Message(@StringRes val text: Int) : EditorEffect
+    /** A message; a [long] one stays for a while, e.g. while the keyboard covers it. */
+    data class Message(@StringRes val text: Int, val long: Boolean = false) : EditorEffect
 
     /** A message with an action that undoes what just happened, while the history is still at [version]. */
     data class Undoable(@StringRes val text: Int, val version: Long) : EditorEffect
@@ -207,7 +208,7 @@ class EditorViewModel(
             !hiddenFeatures.signatureLook.value
         ) {
             hiddenFeatures.unlockSignatureLook()
-            send(EditorEffect.Message(R.string.message_signature_unlocked))
+            send(EditorEffect.Message(R.string.message_signature_unlocked, long = true))
         }
     }
 
