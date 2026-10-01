@@ -43,11 +43,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cz.svoby93.asciistudio.R
+import cz.svoby93.asciistudio.data.ArtPalette
+import cz.svoby93.asciistudio.data.offeredPalettes
 import cz.svoby93.asciistudio.render.artStyle
 import cz.svoby93.asciistudio.ui.components.ArtViewportState
 import cz.svoby93.asciistudio.ui.components.AsciiArtView
 import cz.svoby93.asciistudio.ui.components.rememberArtViewportState
 import cz.svoby93.asciistudio.ui.studio.BlinkingDot
+import cz.svoby93.asciistudio.ui.studio.DeveloperStats
 import cz.svoby93.asciistudio.ui.studio.HistoryActions
 import cz.svoby93.asciistudio.ui.studio.RoundButton
 import cz.svoby93.asciistudio.ui.studio.SettingsTab
@@ -77,6 +80,8 @@ fun EditorContent(
     modifier: Modifier = Modifier,
     viewport: ArtViewportState = rememberArtViewportState(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    palettes: List<ArtPalette> = offeredPalettes(signatureLook = false),
+    developerStats: List<String> = emptyList(),
 ) {
     var tab by rememberSaveable { mutableStateOf(SettingsTab.PRESETS) }
     var expanded by rememberSaveable { mutableStateOf(true) }
@@ -101,6 +106,7 @@ fun EditorContent(
                         showOriginal = showOriginal,
                         viewport = viewport,
                         onBack = onBack,
+                        developerStats = developerStats,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -123,6 +129,7 @@ fun EditorContent(
                                 onExpandedChange = null,
                                 contentHeight = null,
                                 history = history,
+                                palettes = palettes,
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(start = 8.dp, end = 16.dp, bottom = 16.dp),
@@ -143,6 +150,7 @@ fun EditorContent(
                         showOriginal = showOriginal,
                         viewport = viewport,
                         onBack = onBack,
+                        developerStats = developerStats,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
@@ -159,6 +167,7 @@ fun EditorContent(
                             onExpandedChange = { expanded = it },
                             contentHeight = (height * 0.3f).coerceIn(170.dp, 300.dp),
                             history = history,
+                            palettes = palettes,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
@@ -247,6 +256,7 @@ private fun ArtWindow(
     showOriginal: Boolean,
     viewport: ArtViewportState,
     onBack: () -> Unit,
+    developerStats: List<String>,
     modifier: Modifier = Modifier,
 ) {
     val settings = state.settings
@@ -298,6 +308,7 @@ private fun ArtWindow(
                 if (art == null && !showOriginal) {
                     TerminalLine(stringResource(R.string.editor_converting), Modifier.align(Alignment.Center))
                 }
+                if (!showOriginal) DeveloperStats(developerStats, Modifier.padding(12.dp))
                 AnimatedVisibility(
                     visible = viewport.isZoomed && !showOriginal,
                     enter = fadeIn(),

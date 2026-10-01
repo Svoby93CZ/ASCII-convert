@@ -59,6 +59,7 @@ import kotlinx.coroutines.delay
  * The frame measures like its [content] plus the border, so it can either wrap the content or fill
  * the size given by [modifier]. The labels are transparent unless [labelBackground] is given, which
  * keeps them readable over something other than the background of the screens, like a dialog scrim.
+ * [titleModifier] goes to the label with the title, e.g. to listen to taps on it.
  */
 @Composable
 fun TerminalFrame(
@@ -67,6 +68,7 @@ fun TerminalFrame(
     status: (@Composable RowScope.() -> Unit)? = null,
     footer: (@Composable RowScope.() -> Unit)? = null,
     labelBackground: Color = Color.Unspecified,
+    titleModifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val colors = LocalStudioColors.current
@@ -84,7 +86,7 @@ fun TerminalFrame(
                     .padding(top = LabelHeight / 2, bottom = bottomInset),
                 content = content,
             )
-            FrameLabel(Modifier.layoutId(TITLE), labelBackground) {
+            FrameLabel(Modifier.layoutId(TITLE).then(titleModifier), labelBackground) {
                 Text(title.uppercase(), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (status != null) FrameLabel(Modifier.layoutId(STATUS), labelBackground, status)
@@ -192,14 +194,24 @@ private fun DrawScope.drawGlow(box: Rect, radius: Float, color: Color, strength:
     }
 }
 
-/** A blinking dot followed by [text], like the recording light of a camera. */
+/**
+ * A blinking dot followed by [text], like the recording light of a camera. With [morse] the dot
+ * blinks a word in Morse code instead of pulsing.
+ */
 @Composable
-fun RowScope.BlinkingDot(text: String) {
+fun RowScope.BlinkingDot(text: String, morse: MorseLight? = null) {
     val clock = rememberDecorationClock()
     Box(
         Modifier
             .size(7.dp)
-            .graphicsLayer { alpha = dotAlpha(clock.floatValue) }
+            .graphicsLayer {
+                val seconds = clock.floatValue
+                alpha = when {
+                    morse == null -> dotAlpha(seconds)
+                    morse.isOn(seconds) -> 1f
+                    else -> DOT_DIMMED
+                }
+            }
             .background(LocalContentColor.current, CircleShape),
     )
     Text(text.uppercase(), maxLines = 1)

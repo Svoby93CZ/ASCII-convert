@@ -40,7 +40,14 @@ enum class ArtPalette(
     LCD(R.string.palette_lcd, 0xFF9BBC0F.toInt(), 0xFF0F380F.toInt(), isLight = true),
     PAPER(R.string.palette_paper, 0xFFF4EEE1.toInt(), 0xFF2B2620.toInt(), isLight = true),
     INK(R.string.palette_ink, 0xFFFFFFFF.toInt(), 0xFF000000.toInt(), isLight = true),
+
+    /** Gold on midnight blue, for the hidden look of the author's nickname. */
+    SIGNATURE(R.string.palette_signature, 0xFF0C0F26.toInt(), 0xFFFFD166.toInt(), isLight = false),
 }
+
+/** The palettes to offer; the one of the author's nickname only once its look is unlocked. */
+fun offeredPalettes(signatureLook: Boolean): List<ArtPalette> =
+    if (signatureLook) ArtPalette.entries else ArtPalette.entries - ArtPalette.SIGNATURE
 
 /** Decoration of the screens behind their windows, drawn in the colours of the palette. */
 enum class Backdrop(@StringRes val label: Int) {

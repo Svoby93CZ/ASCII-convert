@@ -59,6 +59,7 @@ import cz.svoby93.asciistudio.data.ArtPalette
 import cz.svoby93.asciistudio.data.CharsetPreset
 import cz.svoby93.asciistudio.data.ColorMode
 import cz.svoby93.asciistudio.data.StudioSettings
+import cz.svoby93.asciistudio.data.offeredPalettes
 import cz.svoby93.asciistudio.engine.Dithering
 import cz.svoby93.asciistudio.engine.EdgeMode
 import cz.svoby93.asciistudio.ui.theme.MonoFontFamily
@@ -194,8 +195,13 @@ fun ToneControls(settings: StudioSettings, onChange: SettingsChange) {
     }
 }
 
+/** @param palettes the palettes to offer; the current one shows in any case. */
 @Composable
-fun ColorControls(settings: StudioSettings, onChange: SettingsChange) {
+fun ColorControls(
+    settings: StudioSettings,
+    onChange: SettingsChange,
+    palettes: List<ArtPalette> = offeredPalettes(signatureLook = false),
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionLabel(R.string.label_color_mode)
         SegmentedChoice(
@@ -214,7 +220,7 @@ fun ColorControls(settings: StudioSettings, onChange: SettingsChange) {
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            ArtPalette.entries.forEach { palette ->
+            (if (settings.palette in palettes) palettes else palettes + settings.palette).forEach { palette ->
                 PaletteSwatch(
                     palette = palette,
                     selected = settings.palette == palette,

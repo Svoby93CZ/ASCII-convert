@@ -29,8 +29,11 @@ import cz.svoby93.asciistudio.LocalAppContainer
 import cz.svoby93.asciistudio.R
 import cz.svoby93.asciistudio.data.FileFormat
 import cz.svoby93.asciistudio.data.ImageFormat
+import cz.svoby93.asciistudio.data.offeredLooks
+import cz.svoby93.asciistudio.data.offeredPalettes
 import cz.svoby93.asciistudio.ui.components.rememberArtViewportState
 import cz.svoby93.asciistudio.ui.studio.HistoryActions
+import cz.svoby93.asciistudio.ui.studio.statsLine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -46,12 +49,16 @@ fun EditorScreen(onBack: () -> Unit) {
             optionsFactory = container.optionsFactory,
             exporter = container.exporter,
             gallery = container.galleryRepository,
+            hiddenFeatures = container.hiddenFeatures,
         )
     }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val history by viewModel.historyStates.collectAsStateWithLifecycle()
     val userPresets by viewModel.userPresets.collectAsStateWithLifecycle()
     val thumbnail by viewModel.thumbnail.collectAsStateWithLifecycle()
+    val signatureLook by container.hiddenFeatures.signatureLook.collectAsStateWithLifecycle()
+    val developerMode by container.hiddenFeatures.developerMode.collectAsStateWithLifecycle()
+    val conversionMillis by viewModel.conversionMillis.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -129,6 +136,7 @@ fun EditorScreen(onBack: () -> Unit) {
             thumbnail = thumbnail,
             onSave = viewModel::savePreset,
             onDelete = viewModel::deletePreset,
+            looks = offeredLooks(signatureLook),
         ),
         history = HistoryActions(
             canUndo = history.canUndo,
@@ -138,6 +146,8 @@ fun EditorScreen(onBack: () -> Unit) {
         ),
         viewport = rememberArtViewportState(),
         snackbarHostState = snackbarHostState,
+        palettes = offeredPalettes(signatureLook),
+        developerStats = if (developerMode) editorStats(state, conversionMillis) else emptyList(),
     )
 
     if (showExport) {
@@ -188,4 +198,12 @@ fun EditorScreen(onBack: () -> Unit) {
             onDismiss = { chatColumns = null },
         )
     }
+}
+
+/** For the developer mode: how long the last conversion took, from how many pixels to how many cells. */
+private fun editorStats(state: EditorUiState, conversionMillis: Float?): List<String> {
+    val art = state.art ?: return emptyList()
+    val photo = (state.load as? EditorLoadState.Ready)?.preview ?: return emptyList()
+    val millis = conversionMillis ?: return emptyList()
+    return listOf(statsLine("%.1f ms · %d×%d px → %d×%d", millis, photo.width, photo.height, art.columns, art.rows))
 }

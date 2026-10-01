@@ -5,6 +5,7 @@ import android.media.MediaCodec
 import android.media.MediaCodecInfo.CodecCapabilities
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import android.os.Build
 import android.os.SystemClock
 import android.view.Surface
 import cz.svoby93.asciistudio.data.Frame
@@ -22,12 +23,16 @@ import kotlin.math.roundToInt
 class ArtRecorder(typeface: Typeface, private val output: FileDescriptor) {
 
     private val renderer = AsciiRenderer(typeface)
-    private val info = MediaCodec.BufferInfo()
+    private val buffer = MediaCodec.BufferInfo()
     private lateinit var encoder: MediaCodec
     private lateinit var surface: Surface
     private lateinit var muxer: MediaMuxer
     private lateinit var frame: Frame
     private var track = -1
+
+    /** What the encoder makes, once [start] has prepared it; shown in the developer mode. */
+    lateinit var info: Info
+        private set
 
     /** Prepares a video shaped like [art] with a margin, as large as the encoder allows. */
     fun start(art: AsciiArt) {
@@ -56,6 +61,12 @@ class ArtRecorder(typeface: Typeface, private val output: FileDescriptor) {
             muxer = MediaMuxer(output, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
             val pixelMargin = (margin * width / contentWidth).roundToInt()
             frame = Frame(width, height, pixelMargin, pixelMargin)
+            val hardware = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                encoder.codecInfo.isHardwareAccelerated
+            } else {
+                null
+            }
+            info = Info(encoder.name, hardware, width, height, bitRate)
         } catch (error: Exception) {
             release()
             throw error
@@ -94,7 +105,7 @@ class ArtRecorder(typeface: Typeface, private val output: FileDescriptor) {
     private fun drain(endOfStream: Boolean) {
         val deadline = SystemClock.uptimeMillis() + END_TIMEOUT_MS
         while (true) {
-            val index = encoder.dequeueOutputBuffer(info, if (endOfStream) DEQUEUE_TIMEOUT_US else 0L)
+            val index = encoder.dequeueOutputBuffer(buffer, if (endOfStream) DEQUEUE_TIMEOUT_US else 0L)
             when {
                 index == MediaCodec.INFO_TRY_AGAIN_LATER -> {
                     if (!endOfStream || SystemClock.uptimeMillis() > deadline) return
@@ -106,14 +117,14 @@ class ArtRecorder(typeface: Typeface, private val output: FileDescriptor) {
                 index >= 0 -> {
                     val data = encoder.getOutputBuffer(index)
                     // The codec configuration reaches the file with the output format instead.
-                    val config = info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0
-                    if (data != null && !config && info.size > 0 && track >= 0) {
-                        data.position(info.offset)
-                        data.limit(info.offset + info.size)
-                        muxer.writeSampleData(track, data, info)
+                    val config = buffer.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0
+                    if (data != null && !config && buffer.size > 0 && track >= 0) {
+                        data.position(buffer.offset)
+                        data.limit(buffer.offset + buffer.size)
+                        muxer.writeSampleData(track, data, buffer)
                     }
                     encoder.releaseOutputBuffer(index, false)
-                    if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) return
+                    if (buffer.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) return
                 }
             }
         }
@@ -126,6 +137,12 @@ class ArtRecorder(typeface: Typeface, private val output: FileDescriptor) {
         runCatching { surface.release() }
         runCatching { muxer.release() }
     }
+
+    /**
+     * The encoder by its [name], whether it runs in [hardware] (unknown before Android 10), and
+     * the size and bit rate of the video it makes.
+     */
+    class Info(val name: String, val hardware: Boolean?, val width: Int, val height: Int, val bitRate: Int)
 
     private companion object {
         const val MIME = MediaFormat.MIMETYPE_VIDEO_AVC

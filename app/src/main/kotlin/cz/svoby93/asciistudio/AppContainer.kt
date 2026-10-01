@@ -6,6 +6,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.content.res.ResourcesCompat
 import cz.svoby93.asciistudio.data.ArtExporter
 import cz.svoby93.asciistudio.data.GalleryRepository
+import cz.svoby93.asciistudio.data.HiddenFeatures
 import cz.svoby93.asciistudio.data.ImageRepository
 import cz.svoby93.asciistudio.data.PresetRepository
 import cz.svoby93.asciistudio.data.SettingsRepository
@@ -43,6 +44,11 @@ class AppContainer(context: Context) {
     /** The presets the user saved, stored next to the settings. */
     val presetRepository: PresetRepository by lazy {
         PresetRepository(appContext.settingsDataStore, applicationScope)
+    }
+
+    /** The easter eggs the user has found, see [Signature]; stored next to the settings too. */
+    val hiddenFeatures: HiddenFeatures by lazy {
+        HiddenFeatures(appContext.settingsDataStore, applicationScope)
     }
 
     val lookPreviewer: LookPreviewer by lazy { LookPreviewer(optionsFactory) }

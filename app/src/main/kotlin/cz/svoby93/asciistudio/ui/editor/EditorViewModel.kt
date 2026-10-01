@@ -15,6 +15,7 @@ import cz.svoby93.asciistudio.R
 import cz.svoby93.asciistudio.data.ArtExporter
 import cz.svoby93.asciistudio.data.GalleryItem
 import cz.svoby93.asciistudio.data.GalleryRepository
+import cz.svoby93.asciistudio.data.HiddenFeatures
 import cz.svoby93.asciistudio.data.ImageRepository
 import cz.svoby93.asciistudio.data.PresetRepository
 import cz.svoby93.asciistudio.data.SettingsRepository
@@ -23,6 +24,7 @@ import cz.svoby93.asciistudio.data.StudioSettings
 import cz.svoby93.asciistudio.data.FileFormat
 import cz.svoby93.asciistudio.data.ImageFormat
 import cz.svoby93.asciistudio.data.UserPreset
+import cz.svoby93.asciistudio.data.isSignature
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.engine.AsciiConverter
 import cz.svoby93.asciistudio.engine.AsciiExport
@@ -80,6 +82,7 @@ class EditorViewModel(
     private val optionsFactory: AsciiOptionsFactory,
     private val exporter: ArtExporter,
     private val gallery: GalleryRepository,
+    private val hiddenFeatures: HiddenFeatures,
 ) : ViewModel() {
 
     private val loadState = MutableStateFlow<EditorLoadState>(EditorLoadState.Loading)
@@ -89,6 +92,11 @@ class EditorViewModel(
 
     /** Keeps the samples of the photo, so that tone sliders do not read all of its pixels again. */
     private val converter = CachingConverter()
+
+    private val conversionTime = MutableStateFlow<Float?>(null)
+
+    /** How many milliseconds the last conversion took, shown in the developer mode. */
+    val conversionMillis: StateFlow<Float?> = conversionTime.asStateFlow()
 
     private val history = SettingsHistory()
     private val historyState = MutableStateFlow(HistoryState())
@@ -119,7 +127,12 @@ class EditorViewModel(
     ) { image, settings -> ConversionRequest(image, optionsFactory.create(settings)) }
         // Palette tweaks only change colours, so they do not trigger a new conversion.
         .distinctUntilChanged()
-        .mapLatest { request -> converter.convert(request.image.pixels, request.options) }
+        .mapLatest { request ->
+            val started = System.nanoTime()
+            converter.convert(request.image.pixels, request.options).also {
+                conversionTime.value = (System.nanoTime() - started) / NANOS_PER_MILLI
+            }
+        }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
@@ -189,6 +202,13 @@ class EditorViewModel(
         history.changed(before, SystemClock.uptimeMillis())
         settingsRepository.update { after }
         publishHistory()
+        // Typing the author's nickname as custom characters unlocks the look drawn with its letters.
+        if (after.customChars != before.customChars && isSignature(after.customChars) &&
+            !hiddenFeatures.signatureLook.value
+        ) {
+            hiddenFeatures.unlockSignatureLook()
+            send(EditorEffect.Message(R.string.message_signature_unlocked))
+        }
     }
 
     /** Brings back the default settings as a step of its own, which the message can undo. */
@@ -340,5 +360,6 @@ class EditorViewModel(
         const val KEY_IMPORTED = "imported"
         const val KEY_SAVED_ITEM = "savedItem"
         const val STOP_TIMEOUT_MS = 5_000L
+        const val NANOS_PER_MILLI = 1e6f
     }
 }
