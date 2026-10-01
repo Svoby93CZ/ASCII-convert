@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
@@ -125,17 +126,23 @@ class PresetRepositoryTest {
 
     private suspend fun PresetRepository.loaded(): List<UserPreset> = presets.filterNotNull().first()
 
-    /** Waits until the file holds [count] presets. */
+    /**
+     * Waits until the file holds [count] presets. Reads again and again, because a collector of
+     * `data` that starts while a write is under way can miss that write (DataStore 1.2.1).
+     */
     private suspend fun DataStore<Preferences>.awaitPresets(count: Int) {
-        data.first { preferences ->
-            val text = preferences[stringPreferencesKey("user_presets")] ?: return@first false
-            Regex("\"id\"").findAll(text).count() == count
-        }
+        while (storedPresets() != count) delay(POLL_MS)
+    }
+
+    private suspend fun DataStore<Preferences>.storedPresets(): Int {
+        val text = data.first()[stringPreferencesKey("user_presets")] ?: return 0
+        return Regex("\"id\"").findAll(text).count()
     }
 
     private fun newFile() = File(folder.newFolder(), "settings.preferences_pb")
 
     private companion object {
         const val TIMEOUT_MS = 10_000L
+        const val POLL_MS = 10L
     }
 }
