@@ -1,10 +1,6 @@
 package cz.svoby93.asciistudio.ui.studio
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +17,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import kotlin.math.pow
+import kotlinx.coroutines.delay
 
 /**
  * A window in the style of text user interfaces: a rounded border that glows in the ink colour,
@@ -197,40 +195,36 @@ private fun DrawScope.drawGlow(box: Rect, radius: Float, color: Color, strength:
 /** A blinking dot followed by [text], like the recording light of a camera. */
 @Composable
 fun RowScope.BlinkingDot(text: String) {
-    val alpha = if (LocalAnimationsEnabled.current) {
-        val transition = rememberInfiniteTransition(label = "blink")
-        transition.animateFloat(
-            initialValue = 1f,
-            targetValue = 0.15f,
-            animationSpec = infiniteRepeatable(tween(BLINK_MS), RepeatMode.Reverse),
-            label = "dot",
-        )
-    } else {
-        null
-    }
+    val clock = rememberDecorationClock()
     Box(
         Modifier
             .size(7.dp)
-            .graphicsLayer { this.alpha = alpha?.value ?: 1f }
+            .graphicsLayer { alpha = dotAlpha(clock.floatValue) }
             .background(LocalContentColor.current, CircleShape),
     )
     Text(text.uppercase(), maxLines = 1)
 }
 
+/** The dot fades out and back in, easing like a tween that runs forwards and back. */
+private fun dotAlpha(seconds: Float): Float {
+    val phase = seconds * MILLIS_PER_SECOND / BLINK_MS % 2f
+    val fade = FastOutSlowInEasing.transform(if (phase < 1f) phase else 2f - phase)
+    return 1f - (1f - DOT_DIMMED) * fade
+}
+
 /** A terminal line that ends with a blinking block cursor. */
 @Composable
 fun TerminalLine(text: String, modifier: Modifier = Modifier, style: TextStyle = TerminalLabelStyle) {
-    val cursorAlpha = if (LocalAnimationsEnabled.current) {
-        val transition = rememberInfiniteTransition(label = "cursor")
-        transition.animateFloat(
-            initialValue = 1f,
-            targetValue = 0f,
-            // An instant switch after every pause: the hard blink of a text cursor.
-            animationSpec = infiniteRepeatable(tween(durationMillis = 1, delayMillis = BLINK_MS), RepeatMode.Reverse),
-            label = "cursor",
-        )
-    } else {
-        null
+    val animate = LocalAnimationsEnabled.current
+    var cursorOn by remember { mutableStateOf(true) }
+    if (animate) {
+        // The hard blink of a text cursor needs no frames in between.
+        LaunchedEffect(Unit) {
+            while (true) {
+                delay(BLINK_MS.toLong())
+                cursorOn = !cursorOn
+            }
+        }
     }
     // Screen readers get the text without the prompt and the cursor.
     Row(modifier.clearAndSetSemantics { contentDescription = text }, verticalAlignment = Alignment.CenterVertically) {
@@ -246,7 +240,7 @@ fun TerminalLine(text: String, modifier: Modifier = Modifier, style: TextStyle =
         Box(
             Modifier
                 .size(width = cursorHeight * CURSOR_ASPECT, height = cursorHeight)
-                .graphicsLayer { alpha = cursorAlpha?.value ?: 1f }
+                .graphicsLayer { alpha = if (cursorOn || !animate) 1f else 0f }
                 .background(LocalContentColor.current),
         )
     }
@@ -264,6 +258,8 @@ private val GlowSpread = 14.dp
 private val LabelInset = 18.dp
 private const val GLOW_STEPS = 7
 private const val BLINK_MS = 650
+private const val DOT_DIMMED = 0.15f
+private const val MILLIS_PER_SECOND = 1000f
 private const val CURSOR_HEIGHT = 1.15f
 private const val CURSOR_ASPECT = 0.58f
 

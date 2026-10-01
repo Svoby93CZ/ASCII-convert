@@ -142,8 +142,11 @@ application ID is tied to the Google Play entry and must never change.
     `ArtPalette`. Secondary texts and control outlines (`StudioColors.secondary`, `outline`) get
     more ink where a palette needs it for WCAG contrast (4.5:1 for text, 3:1 for controls);
     `StudioColorsTest` checks every palette. Compose's `lerp` mixes colours in Oklab.
-    `LocalAnimationsEnabled` is false when `ValueAnimator.areAnimatorsEnabled()` is, and then
-    backgrounds and blinking stand still.
+    `LocalAnimationsEnabled` (`rememberDecorationsMove`) is false with the system setting "remove
+    animations" and in battery saver, and then backgrounds, blinking and the donut stand still.
+  - Moving decorations take their time from `rememberDecorationClock`: it ticks 30 times a
+    second, all clocks at the same moments, and is read while drawing, so a tick redraws without
+    recomposing. The donut computes its frames while drawing (`AsciiArtView` with an art lambda).
   - Windows are `TerminalFrame`s (labels set into the border), `SettingsWindow` is the tabbed
     settings window shared by the editor and the camera, and `StudioChrome` has the top bar,
     `RoundButton` and `TerminalDialog`.

@@ -41,6 +41,8 @@ v telefonu, bez internetu a bez odesílání dat.
 - **Vzhled terminálu v celé aplikaci** – úvodní obrazovka, editor, sbírka i kamera mají okna
   v rámečcích ve stylu terminálových programů a barví se podle zvolené palety. Za okny je pozadí
   podle výběru: ASCII vinětace, padající znaky, mřížka, CRT monitor nebo jednobarevné.
+  Pohyblivé pozadí, blikání i donut šetří baterii: kreslí se nejvýš 30× za sekundu a v úsporném
+  režimu stojí.
 - **Sady znaků:** standardní, detailní (28 úrovní), bloky `░▒▓█`, **Braille** (2×4 body na
   znak = dvojnásobné rozlišení), binární `0/1` a vlastní znaky.
 - **Kalibrované tóny:** hustota „inkoustu“ každého znaku je změřená ve vestavěném písmu
@@ -195,6 +197,10 @@ ASCII-convert/
 - **UI** je jednosměrné (UDF): `ViewModel` skládá `StateFlow` obrázku a nastavení, převod
   běží na pozadí přes `mapLatest`, takže posuvníky reagují okamžitě a zastaralé výsledky se
   zahodí.
+- **Animace** pozadí, blikajících světel a donutu tikají ze společných hodin 30× za sekundu,
+  ne s každým snímkem displeje (60–120 Hz), a všechny ve stejný okamžik, takže se překreslí
+  v jednom snímku. Čtou se až při kreslení, takže tik nespouští novou kompozici. Se systémovým
+  „Odstranit animace“ a v úsporném režimu baterie stojí.
 - **Renderer** kreslí každý řádek jedním voláním `drawText`. Barvy z fotky zajišťuje
   `BitmapShader` s jedním pixelem na znak (nearest-neighbour), takže i barevný náhled se
   vykresluje stejně rychle jako jednobarevný. Barevné dlaždice jsou jeden obdélník se stejným
@@ -224,6 +230,7 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
   i release APK. S uloženým klíčem pro nahrávání připraví i bundle pro Google Play.
 - **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,
   export, sbírka, otočení na šířku, živá kamera, čeština a tmavý režim. Při pádu aplikace selže.
+  Nakonec spočítá, kolik snímků za 10 sekund nakreslí pohyblivé dekorace, i v úsporném režimu.
   Spouští se ručně v záložce *Actions* nebo pushem commitu, který má v popisu `[emulator]`.
 
 ## Licence třetích stran

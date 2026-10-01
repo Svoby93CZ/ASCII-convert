@@ -3,11 +3,6 @@ package cz.svoby93.asciistudio.ui.studio
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableFloatState
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
@@ -99,7 +94,7 @@ private fun AsciiBackdrop(colors: StudioColors, scale: Float, modifier: Modifier
 @Composable
 private fun RainBackdrop(colors: StudioColors, animate: Boolean, scale: Float, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
-    val clock = rememberClock(animate)
+    val clock = rememberDecorationClock(animate, START_SECONDS)
     Spacer(
         modifier.drawWithCache {
             val style = GlyphStyle.copy(fontSize = GlyphStyle.fontSize * scale)
@@ -192,7 +187,7 @@ private fun GridBackdrop(colors: StudioColors, scale: Float, modifier: Modifier)
 /** Scanlines, a glowing tube and dark corners of an old monitor, with a slowly rolling bright band. */
 @Composable
 private fun CrtBackdrop(colors: StudioColors, animate: Boolean, scale: Float, modifier: Modifier) {
-    val clock = rememberClock(animate)
+    val clock = rememberDecorationClock(animate, START_SECONDS)
     Spacer(
         modifier.drawWithCache {
             val pitch = (3.dp.toPx() * scale).coerceAtLeast(2f)
@@ -234,21 +229,6 @@ private fun CrtBackdrop(colors: StudioColors, animate: Boolean, scale: Float, mo
     )
 }
 
-/** Seconds since the backdrop appeared, updated every frame while [animate] is on. */
-@Composable
-private fun rememberClock(animate: Boolean): MutableFloatState {
-    val clock = remember { mutableFloatStateOf(START_SECONDS) }
-    if (animate) {
-        LaunchedEffect(clock) {
-            val start = withFrameNanos { it } - (clock.floatValue * NANOS_PER_SECOND).toLong()
-            while (true) {
-                withFrameNanos { now -> clock.floatValue = (now - start) / NANOS_PER_SECOND }
-            }
-        }
-    }
-    return clock
-}
-
 /** The desk colour with a soft light behind the main window. */
 private fun DrawScope.drawDesk(colors: StudioColors, glow: Float = 1f) {
     drawRect(colors.desk)
@@ -278,4 +258,3 @@ private const val RAIN_SEED = 1999
 private const val GLOW_CENTER_Y = 0.4f
 private const val ROLL_SECONDS = 7f
 private const val START_SECONDS = 3f
-private const val NANOS_PER_SECOND = 1_000_000_000f

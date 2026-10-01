@@ -84,7 +84,7 @@ fun ArtPalette.studioColors(): StudioColors {
 
 val LocalStudioColors = staticCompositionLocalOf { ArtPalette.TERMINAL.studioColors() }
 
-/** False when the system "remove animations" setting is on: moving backgrounds and blinking stop. */
+/** False with the system setting "remove animations" and in battery saver: decorations stand still. */
 val LocalAnimationsEnabled = staticCompositionLocalOf { true }
 
 /** Small capitals of window titles and tabs. */
