@@ -19,7 +19,7 @@
     <string name="action_close">Close</string>
     <string name="action_privacy_policy">Privacy policy</string>
     <string name="privacy_policy_title">Privacy policy</string>
-    <string name="privacy_policy_text">ASCII Studio does not collect, send or share any personal data. Photos are processed only on your device, and the app has no permission to access the internet.\n\nPhotos\nImages you pick or share with the app are turned into ASCII art right on your device. A copy of the image you edited last stays in the app\'s private storage, so that you can continue editing.\n\nCamera\nThe camera permission is used only for the live ASCII camera and for taking a photo when you ask for it. Camera images are processed only on your device.\n\nCollection\nASCII art you save to the collection stays in the app\'s private storage together with a reduced copy of its photo, until you delete it from the collection.\n\nSettings\nYour style settings are stored on your device and may be included in your Android backup if it is turned on. Images and the collection are not backed up.\n\nExport\nResults are saved or shared only where you choose. The storage permission is requested only on Android 9 and older, to save images to the Pictures folder.\n\nThe app contains no ads, analytics or tracking and requires no account. You can delete all app data by uninstalling the app or by clearing its data in Android settings.\n\nThe developer\'s contact details are on the app\'s Google Play page.</string>
+    <string name="privacy_policy_text">ASCII Studio does not collect, send or share any personal data. Photos are processed only on your device, and the app has no permission to access the internet.\n\nPhotos\nImages you pick or share with the app are turned into ASCII art right on your device. A copy of the image you edited last stays in the app\'s private storage, so that you can continue editing.\n\nCamera\nThe camera permission is used only for the live ASCII camera and for taking a photo or recording a video when you ask for it. Camera images are processed only on your device. A video contains only the ASCII art without sound, not the camera image, and is saved to the Movies folder.\n\nCollection\nASCII art you save to the collection stays in the app\'s private storage together with a reduced copy of its photo, until you delete it from the collection.\n\nSettings\nYour style settings are stored on your device and may be included in your Android backup if it is turned on. Images and the collection are not backed up.\n\nExport\nResults are saved or shared only where you choose. The storage permission is requested only on Android 9 and older, to save images and videos to the Pictures and Movies folders.\n\nThe app contains no ads, analytics or tracking and requires no account. You can delete all app data by uninstalling the app or by clearing its data in Android settings.\n\nThe developer\'s contact details are on the app\'s Google Play page.</string>
 
     <!-- Editor -->
     <string name="editor_title">Editor</string>
@@ -192,6 +192,14 @@
     <string name="camera_back_lens">Back camera</string>
     <string name="camera_front_lens">Front camera</string>
     <string name="camera_live">Live</string>
+    <string name="camera_record">Record video</string>
+    <string name="camera_stop_recording">Stop recording</string>
+    <string name="camera_recording">Rec %1$s</string>
+    <string name="message_video_saved">Video saved to Movies/ASCII Studio</string>
+    <string name="message_video_limit">Video saved to Movies/ASCII Studio. Recording stops after 3 minutes.</string>
+    <string name="message_video_failed">The video could not be recorded</string>
+    <string name="message_storage_permission_video">Saving videos to Movies needs the storage permission</string>
+    <string name="action_share">Share</string>
     <string name="camera_starting">Starting the camera</string>
     <string name="background_label">Screen background</string>
     <string name="background_supporting">Decorates the screens of the app; the art itself keeps the palette colors.</string>

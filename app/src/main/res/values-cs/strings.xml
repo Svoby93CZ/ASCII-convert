@@ -17,7 +17,7 @@
     <string name="action_close">Zavřít</string>
     <string name="action_privacy_policy">Zásady ochrany soukromí</string>
     <string name="privacy_policy_title">Zásady ochrany soukromí</string>
-    <string name="privacy_policy_text">ASCII Studio nesbírá, neodesílá ani nesdílí žádné osobní údaje. Fotky zpracovává pouze ve vašem zařízení a nemá oprávnění k přístupu na internet.\n\nFotky\nObrázky, které vyberete nebo do aplikace nasdílíte, se převádějí na ASCII art přímo v zařízení. Kopie posledního upravovaného obrázku zůstává v soukromém úložišti aplikace, abyste mohli v úpravách pokračovat.\n\nKamera\nOprávnění ke kameře slouží jen pro živou ASCII kameru a pro pořízení fotky, o které sami požádáte. Obraz z kamery se zpracovává jen v zařízení.\n\nSbírka\nASCII arty, které uložíte do sbírky, zůstávají v soukromém úložišti aplikace spolu se zmenšenou kopií fotky, dokud je ze sbírky nesmažete.\n\nNastavení\nNastavení vzhledu se ukládá v zařízení a může být součástí zálohy Androidu, pokud ji máte zapnutou. Obrázky ani sbírka se nezálohují.\n\nExport\nVýsledky se uloží nebo předají jen tam, kam sami zvolíte. Oprávnění k zápisu do úložiště aplikace žádá jen na Androidu 9 a starším, aby mohla ukládat do složky Obrázky.\n\nAplikace neobsahuje reklamy, analytické nástroje ani sledování a nevyžaduje účet. Všechna její data smažete odinstalováním aplikace nebo vymazáním jejích dat v nastavení Androidu.\n\nKontakt na vývojáře najdete na stránce aplikace v Google Play.</string>
+    <string name="privacy_policy_text">ASCII Studio nesbírá, neodesílá ani nesdílí žádné osobní údaje. Fotky zpracovává pouze ve vašem zařízení a nemá oprávnění k přístupu na internet.\n\nFotky\nObrázky, které vyberete nebo do aplikace nasdílíte, se převádějí na ASCII art přímo v zařízení. Kopie posledního upravovaného obrázku zůstává v soukromém úložišti aplikace, abyste mohli v úpravách pokračovat.\n\nKamera\nOprávnění ke kameře slouží jen pro živou ASCII kameru a pro pořízení fotky nebo nahrání videa, o které sami požádáte. Obraz z kamery se zpracovává jen v zařízení. Video obsahuje jen ASCII art bez zvuku, ne obraz z kamery, a uloží se do složky Filmy.\n\nSbírka\nASCII arty, které uložíte do sbírky, zůstávají v soukromém úložišti aplikace spolu se zmenšenou kopií fotky, dokud je ze sbírky nesmažete.\n\nNastavení\nNastavení vzhledu se ukládá v zařízení a může být součástí zálohy Androidu, pokud ji máte zapnutou. Obrázky ani sbírka se nezálohují.\n\nExport\nVýsledky se uloží nebo předají jen tam, kam sami zvolíte. Oprávnění k zápisu do úložiště aplikace žádá jen na Androidu 9 a starším, aby mohla ukládat do složek Obrázky a Filmy.\n\nAplikace neobsahuje reklamy, analytické nástroje ani sledování a nevyžaduje účet. Všechna její data smažete odinstalováním aplikace nebo vymazáním jejích dat v nastavení Androidu.\n\nKontakt na vývojáře najdete na stránce aplikace v Google Play.</string>
 
     <!-- Editor -->
     <string name="editor_title">Editor</string>
@@ -189,6 +189,14 @@
     <string name="camera_back_lens">Zadní kamera</string>
     <string name="camera_front_lens">Přední kamera</string>
     <string name="camera_live">Živě</string>
+    <string name="camera_record">Nahrát video</string>
+    <string name="camera_stop_recording">Zastavit nahrávání</string>
+    <string name="camera_recording">Rec %1$s</string>
+    <string name="message_video_saved">Video uloženo do složky Filmy/ASCII Studio</string>
+    <string name="message_video_limit">Video uloženo do složky Filmy/ASCII Studio. Nahrávání se zastaví po 3 minutách.</string>
+    <string name="message_video_failed">Video se nepodařilo nahrát</string>
+    <string name="message_storage_permission_video">K uložení videa do složky Filmy je potřeba oprávnění k úložišti</string>
+    <string name="action_share">Sdílet</string>
     <string name="camera_starting">Spouštím kameru</string>
     <string name="background_label">Pozadí obrazovky</string>
     <string name="background_supporting">Zdobí obrazovky aplikace, samotný ASCII art si ponechá barvy palety.</string>

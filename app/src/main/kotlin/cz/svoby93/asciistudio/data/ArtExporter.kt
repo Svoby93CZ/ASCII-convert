@@ -15,6 +15,7 @@ import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import android.view.Display
 import androidx.annotation.RequiresApi
@@ -23,6 +24,7 @@ import cz.svoby93.asciistudio.R
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.engine.AsciiExport
 import cz.svoby93.asciistudio.engine.font.TrueTypeFont
+import cz.svoby93.asciistudio.render.ArtRecorder
 import cz.svoby93.asciistudio.render.ArtStyle
 import cz.svoby93.asciistudio.render.AsciiRenderer
 import java.io.ByteArrayOutputStream
@@ -32,6 +34,8 @@ import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.TimeUnit
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -258,6 +262,71 @@ class ArtExporter(
         return metrics.widthPixels to metrics.heightPixels
     }
 
+    /**
+     * A new video in Movies/ASCII Studio for a recording, hidden from galleries until it is
+     * published. Before Android 10 the caller must hold the storage permission.
+     */
+    fun createVideo(): VideoFile {
+        val name = "${baseFileName()}.mp4"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = context.contentResolver
+            val values = ContentValues().apply {
+                put(MediaStore.Video.Media.DISPLAY_NAME, name)
+                put(MediaStore.Video.Media.MIME_TYPE, VIDEO_MIME)
+                put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/$ALBUM")
+                put(MediaStore.Video.Media.IS_PENDING, 1)
+            }
+            val collection = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            val uri = resolver.insert(collection, values) ?: throw IOException("MediaStore refused the video")
+            val descriptor = try {
+                resolver.openFileDescriptor(uri, "rw") ?: throw IOException("Cannot open $uri")
+            } catch (error: IOException) {
+                resolver.delete(uri, null, null)
+                throw error
+            }
+            return VideoFile(
+                descriptor,
+                onPublish = {
+                    values.clear()
+                    values.put(MediaStore.Video.Media.IS_PENDING, 0)
+                    resolver.update(uri, values, null, null)
+                    uri
+                },
+                onDiscard = { resolver.delete(uri, null, null) },
+            )
+        }
+        val directory = File(publicDirectory(Environment.DIRECTORY_MOVIES), ALBUM)
+        if (!directory.exists() && !directory.mkdirs()) throw IOException("Cannot create $directory")
+        val file = File(directory, name)
+        val mode = ParcelFileDescriptor.MODE_READ_WRITE or ParcelFileDescriptor.MODE_CREATE or
+            ParcelFileDescriptor.MODE_TRUNCATE
+        return VideoFile(
+            ParcelFileDescriptor.open(file, mode),
+            onPublish = { scan(file, VIDEO_MIME) },
+            onDiscard = { file.delete() },
+        )
+    }
+
+    /** A recorder that writes into [video]. */
+    fun recorder(video: VideoFile): ArtRecorder = ArtRecorder(typeface, video.descriptor.fileDescriptor)
+
+    fun shareVideoIntent(uri: Uri): Intent = chooser(
+        Intent(Intent.ACTION_SEND)
+            .setType(VIDEO_MIME)
+            .putExtra(Intent.EXTRA_STREAM, uri)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            .also { it.clipData = ClipData.newRawUri(null, uri) },
+    )
+
+    /** Adds [file] to the media library and returns its content URI, or `null` if that takes too long. */
+    private fun scan(file: File, mimeType: String): Uri? {
+        val scanned = ArrayBlockingQueue<Uri>(1)
+        MediaScannerConnection.scanFile(context, arrayOf(file.path), arrayOf(mimeType)) { _, uri ->
+            if (uri != null) scanned.offer(uri)
+        }
+        return scanned.poll(SCAN_TIMEOUT_S, TimeUnit.SECONDS)
+    }
+
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun saveWithMediaStore(bitmap: Bitmap, name: String) {
         val resolver = context.contentResolver
@@ -280,14 +349,16 @@ class ArtExporter(
         }
     }
 
-    @Suppress("DEPRECATION") // The only way to reach the shared Pictures folder before Android 10.
     private fun saveToPublicDirectory(bitmap: Bitmap, name: String) {
-        val directory = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), ALBUM)
+        val directory = File(publicDirectory(Environment.DIRECTORY_PICTURES), ALBUM)
         if (!directory.exists() && !directory.mkdirs()) throw IOException("Cannot create $directory")
         val file = File(directory, name)
         file.outputStream().use { bitmap.writePng(it) }
         MediaScannerConnection.scanFile(context, arrayOf(file.path), arrayOf("image/png"), null)
     }
+
+    @Suppress("DEPRECATION") // The only way to reach the shared folders before Android 10.
+    private fun publicDirectory(type: String): File = Environment.getExternalStoragePublicDirectory(type)
 
     private fun Bitmap.writePng(stream: OutputStream) {
         if (!compress(Bitmap.CompressFormat.PNG, 100, stream)) throw IOException("PNG encoding failed")
@@ -307,10 +378,31 @@ class ArtExporter(
         const val MAX_PIXELS = 8_000_000f
         const val PREVIEW_SIZE = 720f
         const val PREVIEW_QUALITY = 88
+        const val VIDEO_MIME = "video/mp4"
+        const val SCAN_TIMEOUT_S = 5L
 
         /** A4 in PostScript points of 1/72 inch, with margins of 10 mm. */
         const val A4_SHORT_POINTS = 595
         const val A4_LONG_POINTS = 842
         const val A4_MARGIN_POINTS = 28
+    }
+}
+
+/** A video being written; galleries show it once it is published. */
+class VideoFile(
+    val descriptor: ParcelFileDescriptor,
+    private val onPublish: () -> Uri?,
+    private val onDiscard: () -> Unit,
+) {
+    /** Shows the finished video in galleries; returns its URI for sharing, when there is one. */
+    fun publish(): Uri? {
+        descriptor.close()
+        return onPublish()
+    }
+
+    /** Deletes the unfinished video. */
+    fun discard() {
+        runCatching { descriptor.close() }
+        onDiscard()
     }
 }

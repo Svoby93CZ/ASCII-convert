@@ -327,6 +327,18 @@ tap "COLORS" && tap "Amber" && screen 13-camera-amber 4
 tap "BACKGROUND" && tap "Rain" && screen 13-camera-rain 4
 tap "Hide settings" && screen 13-camera-folded 3
 tap "Show settings"
+# A few seconds of the live art become an MP4 in Movies/ASCII Studio; its middle frame is printed.
+tap "Record video" && screen 13-recording 5 && tap "Stop recording" && screen 13-video-saved 3
+video=$(adb shell "ls -t '/sdcard/Movies/ASCII Studio'" | tr -d '\r' | head -n 1)
+adb exec-out "cat '/sdcard/Movies/ASCII Studio/$video'" > "$OUT/video.mp4"
+if python3 "$UI" video "$OUT/video.mp4" "$OUT/13-video-frame.png"; then
+  echo "===== BEGIN IMAGE 13-video-frame ====="
+  python3 "$UI" encode "$OUT/13-video-frame.png"
+  echo "===== END IMAGE 13-video-frame ====="
+else
+  echo "!!! the recorded video '$video' cannot be played"
+  failures=$((failures + 1))
+fi
 # Back to the default look, so that the later screens stay comparable between runs.
 tap "COLORS" && tap "Terminal"
 tap "BACKGROUND" && tap "ASCII"

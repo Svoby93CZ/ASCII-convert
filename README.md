@@ -34,6 +34,9 @@ v telefonu, bez internetu a bez odesílání dat.
   přední/zadní kamery, fotka v plném rozlišení rovnou do editoru. Přímo v kameře jde nastavit
   sadu znaků, šířku, obrysy, barvy i tón. Obraz je klidný: šum senzoru ani kolísání expozice
   znaky nepřepínají, pohyb kamery se přitom ukáže hned.
+- **Video z kamery** – živý ASCII obraz se nahraje jako MP4 do složky `Filmy/ASCII Studio`
+  a jde hned sdílet. Vzhled se dá měnit i během nahrávání. Video má jen ASCII art bez zvuku,
+  takže aplikace nepotřebuje mikrofon. Nahrávání se zastaví po 3 minutách.
 - **Editor s okamžitým náhledem** – přibližování dvěma prsty, posun, dvojité klepnutí,
   porovnání s originálem. Nastavení je v okně se záložkami stejně jako v kameře.
 - **Předvolby** – osm vzhledů na jedno klepnutí: Klasika, Matrix, Noviny, Game Boy, Modrotisk,
@@ -231,6 +234,9 @@ ASCII-convert/
   - `LiveConverter` průměruje vzorky přes několik snímků, velké změny ale propustí hned. Znak
     drží, dokud se tón buňky zřetelně nepohne (hystereze). Když se hýbe celý obraz, obojí
     vypne.
+  - `ArtRecorder` nahrává video bez knihoven navíc: každý snímek artu nakreslí hardwarovým
+    plátnem na vstupní plochu kodéru H.264 (`MediaCodec`) a `MediaMuxer` ho zapíše do MP4
+    přímo v MediaStore. Snímek má na kratší straně 1080 px, nebo méně, pokud kodér víc neumí.
 - **Baseline Profile**: kód, který běží při startu a na hlavní cestě aplikací (kamera, fotka,
   editor), se při instalaci zkompiluje předem, místo aby se napoprvé interpretoval. Profil
   vygeneruje workflow *Baseline profile* na emulátoru (ručně v záložce *Actions* nebo commitem
@@ -256,7 +262,8 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
   i release APK. S uloženým klíčem pro nahrávání připraví i bundle pro Google Play.
 - **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,
   předvolby, Zpět a Znovu, export (obrázek pro příběh, PDF, SVG, HTML, kopírování pro chat),
-  sbírka, otočení na šířku, živá kamera, čeština a tmavý režim.
+  sbírka, otočení na šířku, živá kamera s nahráním videa (zkontroluje, že jde přehrát),
+  čeština a tmavý režim.
   Při pádu aplikace selže.
   Nakonec spočítá, kolik snímků za 10 sekund nakreslí pohyblivé dekorace, i v úsporném režimu.
 - **Baseline profile** vygeneruje na emulátoru profil a porovná studený start s ním a bez něj.

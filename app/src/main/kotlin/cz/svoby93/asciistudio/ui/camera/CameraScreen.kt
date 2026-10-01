@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.Surface
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -26,13 +28,16 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,6 +64,7 @@ import cz.svoby93.asciistudio.ui.studio.findActivity
 import java.util.concurrent.ExecutionException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -107,6 +113,7 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
             container.settingsRepository,
             container.presetRepository,
             container.optionsFactory,
+            container.exporter,
         )
     }
     val art by viewModel.art.collectAsStateWithLifecycle()
@@ -115,12 +122,52 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
     val capturing by viewModel.isCapturing.collectAsStateWithLifecycle()
     val userPresets by viewModel.userPresets.collectAsStateWithLifecycle()
     val thumbnail by viewModel.thumbnail.collectAsStateWithLifecycle()
+    val recordingSince by viewModel.recordingSince.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resources = LocalResources.current
     val view = LocalView.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val snackbarHostState = remember { SnackbarHostState() }
     var cameraUnavailable by remember { mutableStateOf(false) }
+
+    // Whole seconds of the recording, for the label in the window border.
+    var recordingSeconds by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(recordingSince) {
+        val since = recordingSince
+        if (since == null) {
+            recordingSeconds = null
+            return@LaunchedEffect
+        }
+        while (true) {
+            val elapsed = SystemClock.elapsedRealtime() - since
+            recordingSeconds = (elapsed / MILLIS_PER_SECOND).toInt()
+            delay(MILLIS_PER_SECOND - elapsed % MILLIS_PER_SECOND)
+        }
+    }
+    // The camera stops with the screen, so does the recording, and the video is saved. Turning
+    // the phone recreates the screen, but the recording goes on in the same video.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        if (context.findActivity()?.isChangingConfigurations != true) viewModel.stopRecording()
+    }
+    val scope = rememberCoroutineScope()
+    val storagePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            viewModel.startRecording()
+        } else {
+            val message = resources.getString(R.string.message_storage_permission_video)
+            scope.launch { snackbarHostState.showSnackbar(message) }
+        }
+    }
+    val onToggleRecording = {
+        val needsPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+            PackageManager.PERMISSION_GRANTED
+        when {
+            recordingSince != null -> viewModel.stopRecording()
+            needsPermission -> storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            else -> viewModel.startRecording()
+        }
+    }
 
     LaunchedEffect(lensFacing) {
         val provider = context.cameraProvider()
@@ -153,6 +200,20 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
                 CameraEvent.CaptureFailed -> launch {
                     snackbarHostState.showSnackbar(resources.getString(R.string.camera_capture_failed))
                 }
+                is CameraEvent.VideoSaved -> launch {
+                    val message = if (event.limitReached) R.string.message_video_limit else R.string.message_video_saved
+                    val result = snackbarHostState.showSnackbar(
+                        message = resources.getString(message),
+                        actionLabel = event.uri?.let { resources.getString(R.string.action_share) },
+                        duration = SnackbarDuration.Long,
+                    )
+                    if (result == SnackbarResult.ActionPerformed && event.uri != null) {
+                        context.startActivity(container.exporter.shareVideoIntent(event.uri))
+                    }
+                }
+                CameraEvent.VideoFailed -> launch {
+                    snackbarHostState.showSnackbar(resources.getString(R.string.message_video_failed))
+                }
             }
         }
     }
@@ -165,8 +226,10 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
         frontCamera = lensFacing == CameraSelector.LENS_FACING_FRONT,
         cameraUnavailable = cameraUnavailable,
         capturing = capturing,
+        recordingSeconds = recordingSeconds,
         onBack = onBack,
         onCapture = viewModel::capture,
+        onToggleRecording = onToggleRecording,
         onSwitchCamera = viewModel::switchCamera,
         onChange = viewModel::updateSettings,
         presets = PresetShelf(
@@ -224,6 +287,8 @@ private fun PermissionRationale(
         }
     }
 }
+
+private const val MILLIS_PER_SECOND = 1_000L
 
 private fun Context.hasCameraPermission(): Boolean =
     ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED

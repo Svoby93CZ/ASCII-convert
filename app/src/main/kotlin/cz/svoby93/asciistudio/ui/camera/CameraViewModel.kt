@@ -2,6 +2,7 @@ package cz.svoby93.asciistudio.ui.camera
 
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
 import android.util.Size
@@ -15,16 +16,20 @@ import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cz.svoby93.asciistudio.data.ArtExporter
 import cz.svoby93.asciistudio.data.ImageRepository
 import cz.svoby93.asciistudio.data.PresetRepository
 import cz.svoby93.asciistudio.data.SettingsRepository
 import cz.svoby93.asciistudio.data.StudioSettings
 import cz.svoby93.asciistudio.data.UserPreset
+import cz.svoby93.asciistudio.data.VideoFile
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.engine.LiveConverter
 import cz.svoby93.asciistudio.engine.PixelImage
+import cz.svoby93.asciistudio.render.ArtRecorder
 import cz.svoby93.asciistudio.render.AsciiOptionsFactory
 import cz.svoby93.asciistudio.render.LookPreviewer
+import cz.svoby93.asciistudio.render.artStyle
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.max
@@ -35,6 +40,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -44,17 +50,24 @@ import kotlinx.coroutines.launch
 sealed interface CameraEvent {
     data object PhotoReady : CameraEvent
     data object CaptureFailed : CameraEvent
+
+    /** A recording was saved; [uri] shares it, and [limitReached] says that it stopped by itself. */
+    data class VideoSaved(val uri: Uri?, val limitReached: Boolean) : CameraEvent
+
+    data object VideoFailed : CameraEvent
 }
 
 /**
  * Owns the CameraX use cases: a low resolution analysis stream that is converted to ASCII art
- * on every frame, and a still capture for the photo that is then opened in the editor.
+ * on every frame, and a still capture for the photo that is then opened in the editor. The art of
+ * the stream can be recorded as a video.
  */
 class CameraViewModel(
     private val images: ImageRepository,
     private val settingsRepository: SettingsRepository,
     private val presetRepository: PresetRepository,
     private val optionsFactory: AsciiOptionsFactory,
+    private val exporter: ArtExporter,
 ) : ViewModel() {
 
     val settings: StateFlow<StudioSettings?> = settingsRepository.settings
@@ -78,6 +91,14 @@ class CameraViewModel(
 
     private val capturing = MutableStateFlow(false)
     val isCapturing: StateFlow<Boolean> = capturing.asStateFlow()
+
+    private val recordingStart = MutableStateFlow<Long?>(null)
+
+    /** When the current recording started, as [SystemClock.elapsedRealtime], or `null`. */
+    val recordingSince: StateFlow<Long?> = recordingStart.asStateFlow()
+
+    /** The recording in progress, on the analysis thread only. */
+    private var recording: Recording? = null
 
     private val eventChannel = Channel<CameraEvent>(Channel.BUFFERED)
     val events: Flow<CameraEvent> = eventChannel.receiveAsFlow()
@@ -153,7 +174,9 @@ class CameraViewModel(
                 mirror = lens.value == CameraSelector.LENS_FACING_FRONT,
                 maxSize = columns * SAMPLES_PER_COLUMN,
             )
-            liveArt.value = converter.convert(picture, optionsFactory.create(settings, columns))
+            val art = converter.convert(picture, optionsFactory.create(settings, columns))
+            liveArt.value = art
+            recording?.let { record(it, art, settings) }
             val now = SystemClock.uptimeMillis()
             if (now - thumbnailTime >= THUMBNAIL_INTERVAL_MS) {
                 thumbnailTime = now
@@ -167,6 +190,73 @@ class CameraViewModel(
         val current = settingsRepository.settings.value ?: return
         presetRepository.add(name, current)
     }
+
+    /** Starts recording the live art, which needs art to take the shape of the video from. */
+    fun startRecording() {
+        val since = SystemClock.elapsedRealtime()
+        if (!recordingStart.compareAndSet(expect = null, update = since)) return
+        analysisExecutor.execute {
+            val art = liveArt.value
+            var video: VideoFile? = null
+            try {
+                checkNotNull(art) { "No art to record yet" }
+                video = exporter.createVideo()
+                val recorder = exporter.recorder(video)
+                recorder.start(art)
+                recording = Recording(recorder, video)
+            } catch (error: Exception) {
+                Log.w(TAG, "Recording failed to start", error)
+                video?.discard()
+                recordingStart.value = null
+                eventChannel.trySend(CameraEvent.VideoFailed)
+            }
+        }
+    }
+
+    /** Stops recording and saves the video; it is safe to call when nothing is being recorded. */
+    fun stopRecording() {
+        if (recordingStart.getAndUpdate { null } == null) return
+        analysisExecutor.execute { finishRecording(limitReached = false) }
+    }
+
+    /** Adds a frame to [current], on the analysis thread; a recording ends by itself after a while. */
+    private fun record(current: Recording, art: AsciiArt, settings: StudioSettings) {
+        try {
+            current.recorder.write(art, settings.artStyle())
+        } catch (error: Exception) {
+            Log.w(TAG, "Recording failed", error)
+            recording = null
+            current.recorder.abort()
+            current.video.discard()
+            recordingStart.value = null
+            eventChannel.trySend(CameraEvent.VideoFailed)
+            return
+        }
+        val since = recordingStart.value ?: return
+        if (SystemClock.elapsedRealtime() - since >= MAX_RECORDING_MS) {
+            recordingStart.value = null
+            finishRecording(limitReached = true)
+        }
+    }
+
+    private fun finishRecording(limitReached: Boolean) {
+        val current = recording ?: return
+        recording = null
+        try {
+            if (current.recorder.finish()) {
+                eventChannel.trySend(CameraEvent.VideoSaved(current.video.publish(), limitReached))
+            } else {
+                current.video.discard()
+                eventChannel.trySend(CameraEvent.VideoFailed)
+            }
+        } catch (error: Exception) {
+            Log.w(TAG, "Recording failed to finish", error)
+            current.video.discard()
+            eventChannel.trySend(CameraEvent.VideoFailed)
+        }
+    }
+
+    private class Recording(val recorder: ArtRecorder, val video: VideoFile)
 
     fun deletePreset(preset: UserPreset) = presetRepository.delete(preset.id)
 
@@ -182,6 +272,8 @@ class CameraViewModel(
     }
 
     override fun onCleared() {
+        // Queued before the shutdown, so a recording is still saved when the user leaves.
+        stopRecording()
         imageAnalysis.clearAnalyzer()
         analysisExecutor.shutdown()
     }
@@ -194,6 +286,9 @@ class CameraViewModel(
         const val MAX_PHOTO_SIZE = 1600
         const val THUMBNAIL_INTERVAL_MS = 1_000L
         const val STOP_TIMEOUT_MS = 5_000L
+
+        /** Three minutes are plenty for a clip to share, and keep a video under 150 MB. */
+        const val MAX_RECORDING_MS = 3 * 60 * 1_000L
 
         fun resolutionSelector(size: Size, fallbackRule: Int): ResolutionSelector = ResolutionSelector.Builder()
             .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)

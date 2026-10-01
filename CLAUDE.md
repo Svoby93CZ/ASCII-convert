@@ -28,10 +28,12 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
   the label "Contrast"), so renaming UI labels can break it. Update the script together with UI
   changes, and tag such commits `[emulator]`. The editor and the camera open on the
   presets tab; tabs are tapped by their capitalised labels (`TONE`), because other texts mention
-  tones and colors. The export steps check the size of a saved story picture, save PDF, SVG and
-  HTML through the system file picker, and print those files gzipped and base64 encoded between
-  `===== BEGIN FILE <name> =====` and `===== END FILE <name> =====`. Every step prints a base64
-  JPEG between `===== BEGIN IMAGE <name> =====` and `===== END IMAGE <name> =====` in the job log.
+  tones and colors. The camera steps record a few seconds and check with PyAV (`ui.py video`) that
+  the MP4 plays, printing its middle frame. The export steps check the size of a saved story
+  picture, save PDF, SVG and HTML through the system file picker, and print those files gzipped
+  and base64 encoded between `===== BEGIN FILE <name> =====` and `===== END FILE <name> =====`.
+  Every step prints a base64 JPEG between `===== BEGIN IMAGE <name> =====` and
+  `===== END IMAGE <name> =====` in the job log.
   Near the end it turns animations on and prints `===== FRAMES <name>: ... =====` lines: the
   frames the app draws and the CPU time it takes in 10 seconds on screens with moving decorations,
   also in battery saver. It measures on a 360 × 800 screen, because the emulator renders in
@@ -197,6 +199,11 @@ profile when the app does not come from Google Play.
     array (rotation and mirroring happen in the indices, large frames are averaged by blocks),
     and `LiveConverter` converts it at no more than `StudioSettings.MAX_LIVE_COLUMNS` columns.
     `ImageCapture` takes the full photo, which goes through `ImageRepository` into the editor.
+  - Recording: `ArtRecorder` draws every frame of art with the hardware canvas on the input
+    surface of an H.264 `MediaCodec` encoder and muxes it into an MP4 without sound, written
+    straight into a pending MediaStore entry (`ArtExporter.createVideo`, Movies/ASCII Studio)
+    that is published when the recording ends. It all runs on the analysis thread; a recording
+    stops after 3 minutes, when the screen stops, or when the user leaves the camera.
   - `CameraScreen` handles the permission and camera binding, then renders the stateless
     `CameraContent`.
 - **Navigation:** type-safe routes in `AsciiStudioNavHost`: `HomeRoute`,

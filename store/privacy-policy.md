@@ -1,6 +1,6 @@
 # Zásady ochrany soukromí aplikace ASCII Studio
 
-*Platné od 28. září 2026*
+*Platné od 1. října 2026*
 
 Aplikaci ASCII Studio pro Android vyvíjí [jméno vývojáře]. Tyto zásady popisují, jak aplikace
 zachází s vašimi daty.
@@ -16,7 +16,9 @@ zařízení. Aplikace nemá oprávnění k přístupu na internet.
   v zařízení. Kopii posledního upravovaného obrázku uchovává ve svém soukromém úložišti, abyste
   mohli v úpravách pokračovat. Při otevření dalšího obrázku se kopie přepíše.
 - **Kamera.** Oprávnění ke kameře aplikace používá jen pro živou ASCII kameru a pro pořízení
-  fotky, o které sami požádáte. Obraz z kamery se zpracovává jen v zařízení.
+  fotky nebo nahrání videa, o které sami požádáte. Obraz z kamery se zpracovává jen v zařízení.
+  Video obsahuje jen ASCII art bez zvuku, ne obraz z kamery, a uloží se do složky
+  Filmy/ASCII Studio.
 - **Sbírka.** ASCII arty, které uložíte do sbírky v aplikaci, uchovává aplikace ve svém
   soukromém úložišti spolu se zmenšenou kopií fotky a nastavením, se kterým vznikly. Zůstanou
   tam, dokud je ze sbírky nesmažete.
@@ -25,7 +27,8 @@ zařízení. Aplikace nemá oprávnění k přístupu na internet.
   sbírka se nezálohují.
 - **Export.** Výsledky se uloží nebo předají jen tam, kam sami zvolíte: do složky
   Obrázky/ASCII Studio, do souboru nebo do jiné aplikace přes sdílení. Oprávnění k zápisu do
-  úložiště aplikace žádá jen na Androidu 9 a starším, aby mohla uložit obrázek do složky Obrázky.
+  úložiště aplikace žádá jen na Androidu 9 a starším, aby mohla uložit obrázek nebo video do
+  složek Obrázky a Filmy.
 
 ## Co aplikace nedělá
 
@@ -37,7 +40,8 @@ zařízení. Aplikace nemá oprávnění k přístupu na internet.
 
 Všechna data aplikace zůstávají ve vašem zařízení. Smažete je odinstalováním aplikace nebo
 v nastavení Androidu (Aplikace → ASCII Studio → Úložiště → Vymazat data). Jednotlivé ASCII arty
-smažete ve sbírce v aplikaci. Obrázky uložené do složky Obrázky spravujete stejně jako ostatní fotky.
+smažete ve sbírce v aplikaci. Obrázky a videa uložené do složek Obrázky a Filmy spravujete stejně
+jako ostatní fotky a videa.
 
 ## Děti
 
@@ -55,7 +59,7 @@ S dotazy k ochraně soukromí pište na [váš e-mail].
 
 # ASCII Studio Privacy Policy
 
-*Effective September 28, 2026*
+*Effective October 1, 2026*
 
 ASCII Studio for Android is developed by [developer name]. This policy explains how the app
 handles your data.
@@ -71,7 +75,9 @@ your device. The app has no permission to access the internet.
   device. It keeps a copy of the image you edited last in its private storage, so that you can
   continue editing. Opening another image replaces the copy.
 - **Camera.** The camera permission is used only for the live ASCII camera and for taking a
-  photo when you ask for it. Camera images are processed only on your device.
+  photo or recording a video when you ask for it. Camera images are processed only on your
+  device. A video contains only the ASCII art without sound, not the camera image, and is saved
+  to the Movies/ASCII Studio folder.
 - **Collection.** ASCII art you save to the app's collection is kept in the app's private storage
   together with a reduced copy of its photo and the settings it was made with. It stays there
   until you delete it from the collection.
@@ -80,7 +86,8 @@ your device. The app has no permission to access the internet.
   and the collection are not backed up.
 - **Export.** Results are saved or handed over only where you choose: to the Pictures/ASCII
   Studio folder, to a file or to another app through sharing. The app asks for the storage write
-  permission only on Android 9 and older, to save images to the Pictures folder.
+  permission only on Android 9 and older, to save images and videos to the Pictures and Movies
+  folders.
 
 ## What the app does not do
 
@@ -92,7 +99,8 @@ your device. The app has no permission to access the internet.
 
 All app data stays on your device. You can delete it by uninstalling the app or in Android
 settings (Apps → ASCII Studio → Storage → Clear data). You delete single ASCII art in the app's
-collection. Images saved to the Pictures folder are managed like any other photos.
+collection. Images and videos saved to the Pictures and Movies folders are managed like any other
+photos and videos.
 
 ## Children
 
