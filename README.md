@@ -100,6 +100,7 @@ export ANDROID_HOME="$HOME/Android/Sdk"   # cesta k SDK z Android Studia
 ./gradlew :engine:test                 # testy převodního enginu (běží i bez Android SDK)
 ./gradlew :app:testDebugUnitTest       # testy aplikace
 ./gradlew :app:assembleRelease         # APK v app/build/outputs/apk/release/
+./gradlew :app:generateBaselineProfile # nový Baseline Profile (připojený Android 13+, viz níže)
 ./gradlew :app:installDebug            # sestaví a nainstaluje do připojeného telefonu
 ```
 
@@ -181,10 +182,11 @@ ASCII-convert/
 │   ├── AsciiExport      HTML a ANSI export
 │   ├── PhotoColors      barvy z fotky čitelné na papíru palety, barevné dlaždice
 │   └── Donut            animace z úvodní obrazovky
-└── app/      Android aplikace (Jetpack Compose)
-    ├── data/     nastavení (DataStore), načítání obrázků, sbírka, export a sdílení
-    ├── render/   kreslení ASCII artu na Canvas, měření znaků vlastního písma
-    └── ui/       společný vzhled (studio), domovská obrazovka, editor, sbírka, živá kamera
+├── app/      Android aplikace (Jetpack Compose)
+│   ├── data/     nastavení (DataStore), načítání obrázků, sbírka, export a sdílení
+│   ├── render/   kreslení ASCII artu na Canvas, měření znaků vlastního písma
+│   └── ui/       společný vzhled (studio), domovská obrazovka, editor, sbírka, živá kamera
+└── baselineprofile/  generátor Baseline Profile a měření studeného startu
 ```
 
 - **Engine** pracuje s polem pixelů (`IntArray` ve formátu ARGB), takže je rychlý,
@@ -213,6 +215,13 @@ ASCII-convert/
   - `LiveConverter` průměruje vzorky přes několik snímků, velké změny ale propustí hned. Znak
     drží, dokud se tón buňky zřetelně nepohne (hystereze). Když se hýbe celý obraz, obojí
     vypne.
+- **Baseline Profile**: kód, který běží při startu a na hlavní cestě aplikací (kamera, fotka,
+  editor), se při instalaci zkompiluje předem, místo aby se napoprvé interpretoval. Profil
+  vygeneruje workflow *Baseline profile* na emulátoru (ručně v záložce *Actions* nebo commitem
+  s `[profile]` v popisu) a uložený je v `app/src/release/generated/baselineProfiles/`. Google Play
+  podle něj aplikaci zkompiluje už při instalaci. Mimo obchod ho po prvním spuštění zapíše
+  `profileinstaller` a systém aplikaci zkompiluje na pozadí. Po větších změnách kódu ho stojí
+  za to vygenerovat znovu.
 - Závislosti se předávají ručně přes `AppContainer` – pro aplikaci této velikosti je to
   jednodušší a rychlejší na sestavení než DI framework.
 
@@ -231,6 +240,9 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 - **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,
   export, sbírka, otočení na šířku, živá kamera, čeština a tmavý režim. Při pádu aplikace selže.
   Nakonec spočítá, kolik snímků za 10 sekund nakreslí pohyblivé dekorace, i v úsporném režimu.
+- **Baseline profile** vygeneruje na emulátoru profil a porovná studený start s ním a bez něj.
+  Profil i časy vypíše do logu a uloží jako artefakt. Spouští se ručně nebo commitem
+  s `[profile]` v popisu.
   Spouští se ručně v záložce *Actions* nebo pushem commitu, který má v popisu `[emulator]`.
 
 ## Licence třetích stran

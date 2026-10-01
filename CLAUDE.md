@@ -14,6 +14,7 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
 ./gradlew :app:testDebugUnitTest                         # settings (real DataStore), gallery, contrast
 ./gradlew :app:lintDebug                                 # lint errors fail CI
 ./gradlew :app:assembleDebug                             # also :app:assembleRelease, :app:installDebug
+./gradlew :app:generateBaselineProfile                   # needs a connected device with Android 13+
 ```
 
 - **Android CI** (`.github/workflows/android.yml`) runs on every push: `:engine:test`, then
@@ -30,6 +31,14 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
   draws and the CPU time it takes in 10 seconds on screens with moving decorations, also in
   battery saver. It measures on a 360 × 800 screen, because the emulator renders in software and
   falls to about 10 frames a second at full size.
+- **Baseline profile** (`.github/workflows/baseline-profile.yml`, `.github/scripts/baseline-profile.sh`)
+  runs for pushes whose commit message contains `[profile]`, or manually. On an emulator it runs
+  `:app:generateBaselineProfile`, then `StartupBenchmarks` (cold starts without and with the
+  profile). It prints the profiles gzipped and base64 encoded between
+  `===== BEGIN PROFILE <file> =====` and `===== END PROFILE <file> =====`, and the timings between
+  `BEGIN BENCHMARK` and `END BENCHMARK` markers. Commit the profiles to
+  `app/src/release/generated/baselineProfiles/`; regenerate them after larger changes to the
+  start, the camera or the editor, and keep the journey's labels in sync with the UI.
 
 ## Cloud sessions
 
@@ -59,9 +68,14 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
 
 ## Architecture
 
-Two Gradle modules. `engine/` is pure Kotlin/JVM with no Android dependencies. `app/` is the
+Three Gradle modules. `engine/` is pure Kotlin/JVM with no Android dependencies. `app/` is the
 Android app: code namespace `cz.svoby93.asciistudio`, application ID `com.asciistudio`. The
-application ID is tied to the Google Play entry and must never change.
+application ID is tied to the Google Play entry and must never change. `baselineprofile/` is a
+`com.android.test` module with the Baseline Profile generator (`BaselineProfileGenerator`: the
+start, and a journey through the camera, a photo and the editor, driven by UiAutomator through
+visible labels) and `StartupBenchmarks`. The `androidx.baselineprofile` plugin adds the build
+types `nonMinifiedRelease` and `benchmarkRelease` to the app, and `profileinstaller` installs the
+profile when the app does not come from Google Play.
 
 ### Conversion engine (`engine/`)
 
