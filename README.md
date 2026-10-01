@@ -197,7 +197,9 @@ ASCII-convert/
   shaderem. Braille se kreslí jako skutečné body, proto je ostrý a zarovnaný na všech
   zařízeních.
 - **Kamera** (CameraX): analýza snímků v nízkém rozlišení pro živý náhled a samostatné
-  `ImageCapture` pro ostrou fotku.
+  `ImageCapture` pro ostrou fotku. `RgbaFrameReader` čte pixely přímo z bufferu kamery do
+  jednoho pole, které se používá pořád dokola. Otočení a zrcadlení řeší v indexech, takže
+  snímek nic nealokuje.
 - Závislosti se předávají ručně přes `AppContainer` – pro aplikaci této velikosti je to
   jednodušší a rychlejší na sestavení než DI framework.
 
@@ -210,7 +212,7 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 - `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, barvy z fotky,
   export, opakované použití vzorků).
 - `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore, sbírka
-  na disku a kontrast textů ve všech paletách.
+  na disku, kontrast textů ve všech paletách a čtení snímků z kamery.
 - **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug
   i release APK. S uloženým klíčem pro nahrávání připraví i bundle pro Google Play.
 - **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,

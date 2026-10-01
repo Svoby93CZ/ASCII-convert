@@ -19,7 +19,6 @@ import cz.svoby93.asciistudio.data.SettingsRepository
 import cz.svoby93.asciistudio.data.StudioSettings
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.engine.AsciiConverter
-import cz.svoby93.asciistudio.engine.PixelImage
 import cz.svoby93.asciistudio.render.AsciiOptionsFactory
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -64,6 +63,9 @@ class CameraViewModel(
     val events: Flow<CameraEvent> = eventChannel.receiveAsFlow()
 
     private val analysisExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+
+    /** Reads the frames of the analysis stream, on its thread only. */
+    private val frames = RgbaFrameReader()
 
     val imageAnalysis: ImageAnalysis = ImageAnalysis.Builder()
         .setResolutionSelector(resolutionSelector(Size(640, 480), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
@@ -114,21 +116,25 @@ class CameraViewModel(
         image.use { frame ->
             val settings = settingsRepository.settings.value ?: return
             val columns = min(settings.columns, StudioSettings.MAX_LIVE_COLUMNS)
-            val mirror = lens.value == CameraSelector.LENS_FACING_FRONT
-            val source = frame.toBitmap()
-            val small = upright(source, frame.imageInfo.rotationDegrees, mirror, columns * SAMPLES_PER_COLUMN)
-            if (small !== source) source.recycle()
-            val pixels = IntArray(small.width * small.height)
-            small.getPixels(pixels, 0, small.width, 0, 0, small.width, small.height)
-            small.recycle()
-            liveArt.value = AsciiConverter.convert(
-                PixelImage(small.width, small.height, pixels),
-                optionsFactory.create(settings, columns),
+            val plane = frame.planes[0]
+            val crop = frame.cropRect
+            val picture = frames.read(
+                plane.buffer,
+                plane.rowStride,
+                plane.pixelStride,
+                crop.left,
+                crop.top,
+                crop.width(),
+                crop.height(),
+                frame.imageInfo.rotationDegrees,
+                mirror = lens.value == CameraSelector.LENS_FACING_FRONT,
+                maxSize = columns * SAMPLES_PER_COLUMN,
             )
+            liveArt.value = AsciiConverter.convert(picture, optionsFactory.create(settings, columns))
         }
     }
 
-    /** Rotates the sensor image upright, mirrors selfies and shrinks it to [maxSize] pixels. */
+    /** Rotates the photo upright, mirrors selfies and shrinks it to [maxSize] pixels. */
     private fun upright(bitmap: Bitmap, rotationDegrees: Int, mirror: Boolean, maxSize: Int): Bitmap {
         val scale = min(1f, maxSize.toFloat() / max(bitmap.width, bitmap.height))
         val matrix = Matrix().apply {

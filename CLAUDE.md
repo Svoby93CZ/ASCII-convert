@@ -140,10 +140,11 @@ application ID is tied to the Google Play entry and must never change.
     settings window shared by the editor and the camera, and `StudioChrome` has the top bar,
     `RoundButton` and `TerminalDialog`.
 - **Live camera (`ui/camera`):**
-  - `CameraViewModel` owns the CameraX use cases. `ImageAnalysis` delivers RGBA frames, keeps
-    only the latest, and converts each frame at no more than `StudioSettings.MAX_LIVE_COLUMNS`
-    columns. `ImageCapture` takes the full photo, which goes through `ImageRepository` into the
-    editor.
+  - `CameraViewModel` owns the CameraX use cases. `ImageAnalysis` delivers RGBA frames and keeps
+    only the latest. `RgbaFrameReader` reads each frame from the plane buffer into one reused
+    array (rotation and mirroring happen in the indices, large frames are averaged by blocks),
+    which is converted at no more than `StudioSettings.MAX_LIVE_COLUMNS` columns.
+    `ImageCapture` takes the full photo, which goes through `ImageRepository` into the editor.
   - `CameraScreen` handles the permission and camera binding, then renders the stateless
     `CameraContent`.
 - **Navigation:** type-safe routes in `AsciiStudioNavHost`: `HomeRoute`,
