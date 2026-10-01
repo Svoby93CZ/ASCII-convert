@@ -32,9 +32,10 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
   battery saver. It measures on a 360 × 800 screen, because the emulator renders in software and
   falls to about 10 frames a second at full size.
 - **Baseline profile** (`.github/workflows/baseline-profile.yml`, `.github/scripts/baseline-profile.sh`)
-  runs for pushes whose commit message contains `[profile]`, or manually. On an emulator it runs
-  `:app:generateBaselineProfile`, then `StartupBenchmarks` (cold starts without and with the
-  profile). It prints the profiles gzipped and base64 encoded between
+  runs for pushes whose commit message contains `[profile]`, or manually. On an emulator with a
+  360 × 800 screen it runs `:app:generateBaselineProfile`, then `StartupBenchmarks` (cold starts
+  without and with the profile). At the end of the log, because the GitHub tools return only its
+  last 5000 lines, it prints the profiles gzipped and base64 encoded between
   `===== BEGIN PROFILE <file> =====` and `===== END PROFILE <file> =====`, and the timings between
   `BEGIN BENCHMARK` and `END BENCHMARK` markers. Commit the profiles to
   `app/src/release/generated/baselineProfiles/`; regenerate them after larger changes to the
