@@ -18,7 +18,7 @@ import cz.svoby93.asciistudio.data.ImageRepository
 import cz.svoby93.asciistudio.data.SettingsRepository
 import cz.svoby93.asciistudio.data.StudioSettings
 import cz.svoby93.asciistudio.engine.AsciiArt
-import cz.svoby93.asciistudio.engine.AsciiConverter
+import cz.svoby93.asciistudio.engine.LiveConverter
 import cz.svoby93.asciistudio.render.AsciiOptionsFactory
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -66,6 +66,9 @@ class CameraViewModel(
 
     /** Reads the frames of the analysis stream, on its thread only. */
     private val frames = RgbaFrameReader()
+
+    /** Keeps the live picture calm from frame to frame, on the analysis thread only. */
+    private val converter = LiveConverter()
 
     val imageAnalysis: ImageAnalysis = ImageAnalysis.Builder()
         .setResolutionSelector(resolutionSelector(Size(640, 480), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
@@ -130,7 +133,7 @@ class CameraViewModel(
                 mirror = lens.value == CameraSelector.LENS_FACING_FRONT,
                 maxSize = columns * SAMPLES_PER_COLUMN,
             )
-            liveArt.value = AsciiConverter.convert(picture, optionsFactory.create(settings, columns))
+            liveArt.value = converter.convert(picture, optionsFactory.create(settings, columns))
         }
     }
 

@@ -12,7 +12,8 @@ import kotlin.math.roundToInt
  * A conversion has two halves. [sample] averages the image into the grids the options need; it
  * reads every pixel of the image and takes most of the time. The [convert] that takes [Samples]
  * turns the grids into glyphs, and settings that only change tones, dithering or the
- * sensitivity of outlines can repeat it on the same samples, as [CachingConverter] does.
+ * sensitivity of outlines can repeat it on the same samples. [CachingConverter] and
+ * [LiveConverter] build on the two halves.
  */
 object AsciiConverter {
 
@@ -23,13 +24,7 @@ object AsciiConverter {
         (columns * (imageHeight.toFloat() / imageWidth) * cellAspect).roundToInt().coerceAtLeast(1)
 
     /** The second half of a conversion: tones, dithering, glyphs and outlines from [samples]. */
-    fun convert(samples: Samples, options: AsciiOptions): AsciiArt {
-        require(samples.fit(options)) { "The samples were made for other options" }
-        return when (val glyphs = options.glyphs) {
-            is GlyphSet.Ramp -> convertRamp(samples, options, glyphs.ramp)
-            GlyphSet.Braille -> convertBraille(samples, options)
-        }
-    }
+    fun convert(samples: Samples, options: AsciiOptions): AsciiArt = convert(samples, options, hold = null)
 
     /** The first half of a conversion: [image] averaged into the grids that [options] need. */
     fun sample(image: PixelImage, options: AsciiOptions): Samples {
@@ -73,13 +68,23 @@ object AsciiConverter {
         }
     }
 
-    private fun convertRamp(samples: Samples, options: AsciiOptions, ramp: CharRamp): AsciiArt {
+    /** [convert] that keeps glyphs of the previous frame through [hold], for live video. */
+    internal fun convert(samples: Samples, options: AsciiOptions, hold: GlyphHold?): AsciiArt {
+        require(samples.fit(options)) { "The samples were made for other options" }
+        return when (val glyphs = options.glyphs) {
+            is GlyphSet.Ramp -> convertRamp(samples, options, glyphs.ramp, hold)
+            GlyphSet.Braille -> convertBraille(samples, options, hold)
+        }
+    }
+
+    private fun convertRamp(samples: Samples, options: AsciiOptions, ramp: CharRamp, hold: GlyphHold?): AsciiArt {
         val columns = samples.columns
         val rows = samples.rows
         val grid = samples.grid
 
         val ink = ToneMapper.toInk(grid, options)
         val indices = Quantizer.quantize(ink, columns, rows, ramp.levels, options.dithering)
+        hold?.apply(ink, indices, columns, rows, ramp.levels, options.dithering)
         val chars = CharArray(columns * rows) { ramp.chars[indices[it]] }
 
         val fine = samples.fine
@@ -112,7 +117,7 @@ object AsciiConverter {
         return AsciiArt(columns, rows, chars, grid.colors, options.cellAspect, isBraille = false)
     }
 
-    private fun convertBraille(samples: Samples, options: AsciiOptions): AsciiArt {
+    private fun convertBraille(samples: Samples, options: AsciiOptions, hold: GlyphHold?): AsciiArt {
         val columns = samples.columns
         val rows = samples.rows
         val dots = samples.grid
@@ -121,6 +126,7 @@ object AsciiConverter {
 
         val ink = ToneMapper.toInk(dots, options)
         val lit = Quantizer.quantize(ink, dotsWide, dotsHigh, BINARY_LEVELS, options.dithering)
+        hold?.apply(ink, lit, dotsWide, dotsHigh, BINARY_LEVELS, options.dithering)
         val on = BooleanArray(lit.size) { lit[it] == 1 }
 
         if (options.edgeMode != EdgeMode.OFF) {

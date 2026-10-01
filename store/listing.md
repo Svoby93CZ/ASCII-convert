@@ -23,7 +23,7 @@ Proměňte fotky v ASCII art. Braille, barvy, obrysy, živá kamera. Bez interne
 ASCII Studio promění vaše fotky v umění složené ze znaků. Vyberte fotku z galerie, nasdílejte obrázek z jiné aplikace nebo namiřte kameru a sledujte svět jako ASCII art v reálném čase.
 
 HLAVNÍ FUNKCE
-• Živá ASCII kamera: obraz se převádí na znaky v reálném čase, znaky, šířku, barvy i pozadí nastavíte přímo v kameře a fotku pak doladíte v editoru
+• Živá ASCII kamera: obraz se převádí na znaky v reálném čase a nebliká, znaky, šířku, barvy i pozadí nastavíte přímo v kameře a fotku pak doladíte v editoru
 • Sbírka: ASCII arty si uložíte i s fotkou a nastavením a kdykoli je znovu otevřete a upravíte
 • Retro vzhled: okna ve stylu terminálu a pozadí s padajícími znaky, mřížkou nebo CRT monitorem, vše v barvách zvolené palety
 • Okamžitý náhled s přibližováním dvěma prsty a porovnáním s originálem
@@ -66,7 +66,7 @@ Turn photos into ASCII art. Braille, colors, outlines, live camera. Offline.
 ASCII Studio turns your photos into art made of characters. Pick a photo from your gallery, share a picture from another app or point your camera and watch the world as ASCII art in real time.
 
 FEATURES
-• Live ASCII camera: see the camera image as characters in real time, set the characters, width, colors and background right in the camera, then fine-tune the photo in the editor
+• Live ASCII camera: see the camera image as characters in real time without flicker, set the characters, width, colors and background right in the camera, then fine-tune the photo in the editor
 • Collection: keep your ASCII art together with its photo and settings, open it again and keep editing any time
 • Retro look: terminal-style windows and backgrounds with falling characters, a grid or a CRT monitor, all in the colors of the chosen palette
 • Instant preview with pinch to zoom and a comparison with the original

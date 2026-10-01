@@ -82,28 +82,26 @@ internal object Quantizer {
     /** Ordered dithering with an 8×8 Bayer matrix between the two neighbouring levels. */
     private fun bayer(values: FloatArray, width: Int, height: Int, levels: FloatArray): IntArray {
         val result = IntArray(values.size)
-        val last = levels.size - 1
         for (y in 0 until height) {
             for (x in 0 until width) {
                 val i = y * width + x
-                val v = values[i]
-                if (v <= 0f) continue
-                if (v >= 1f) {
-                    result[i] = last
-                    continue
-                }
-                var lower = nearest(levels, v)
-                if (levels[lower] > v) lower--
-                if (lower >= last) {
-                    result[i] = last
-                    continue
-                }
-                val fraction = (v - levels[lower]) / (levels[lower + 1] - levels[lower])
-                val threshold = (BAYER_8[(y and 7) * 8 + (x and 7)] + 0.5f) / 64f
-                result[i] = if (fraction > threshold) lower + 1 else lower
+                result[i] = bayer(levels, values[i], x, y)
             }
         }
         return result
+    }
+
+    /** The level that the Bayer matrix picks for [value] in the cell at ([x], [y]). */
+    fun bayer(levels: FloatArray, value: Float, x: Int, y: Int): Int {
+        val last = levels.size - 1
+        if (value <= 0f) return 0
+        if (value >= 1f) return last
+        var lower = nearest(levels, value)
+        if (levels[lower] > value) lower--
+        if (lower >= last) return last
+        val fraction = (value - levels[lower]) / (levels[lower + 1] - levels[lower])
+        val threshold = (BAYER_8[(y and 7) * 8 + (x and 7)] + 0.5f) / 64f
+        return if (fraction > threshold) lower + 1 else lower
     }
 
     private fun spread(buffer: FloatArray, width: Int, height: Int, x: Int, y: Int, amount: Float) {

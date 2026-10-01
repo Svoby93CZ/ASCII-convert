@@ -32,7 +32,8 @@ v telefonu, bez internetu a bez odesílání dat.
   obrázků** do aplikace z galerie, prohlížeče nebo chatu.
 - **Živá ASCII kamera** – obraz z kamery se převádí na ASCII art v reálném čase, přepínání
   přední/zadní kamery, fotka v plném rozlišení rovnou do editoru. Přímo v kameře jde nastavit
-  sadu znaků, šířku, obrysy, barvy i tón.
+  sadu znaků, šířku, obrysy, barvy i tón. Obraz je klidný: šum senzoru ani kolísání expozice
+  znaky nepřepínají, pohyb kamery se přitom ukáže hned.
 - **Editor s okamžitým náhledem** – přibližování dvěma prsty, posun, dvojité klepnutí,
   porovnání s originálem. Nastavení je v okně se záložkami stejně jako v kameře.
 - **Sbírka** – ASCII arty uložené z editoru zůstávají v aplikaci i s fotkou a nastavením, takže
@@ -46,7 +47,9 @@ v telefonu, bez internetu a bez odesílání dat.
   JetBrains Mono, takže přechody odpovídají fotce. Vlastní znaky se proměří a seřadí
   automaticky.
 - **Úpravy tónu:** automatické úrovně, jas, kontrast, ostrost, invertování.
-- **Dithering:** Floyd–Steinberg, Atkinson a Bayer.
+- **Dithering:** Floyd–Steinberg, Atkinson a Bayer. Živá kamera místo Floyd–Steinberga
+  a Atkinsona kreslí Bayerovu mřížku, která mezi snímky nebliká. Vyfocená fotka dostane zvolený
+  dithering.
 - **Obrysy:** detekce hran (Sobel + tenzor struktury) kreslí linky znaky `| / - \`,
   v kombinaci s tóny nebo samostatně.
 - **Barvy:** 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo
@@ -171,6 +174,7 @@ ASCII-convert/
 ├── engine/   Čistý Kotlin (JVM), žádná závislost na Androidu
 │   ├── AsciiConverter   vzorkování → tóny → dithering → znaky (+ obrysy, Braille)
 │   ├── CachingConverter editor: posuvníky tónů fotku znovu nevzorkují
+│   ├── LiveConverter    živá kamera: klidný obraz mezi snímky
 │   ├── CharRamp(s)      sady znaků s naměřenou hustotou inkoustu
 │   ├── AsciiExport      HTML a ANSI export
 │   ├── PhotoColors      barvy z fotky čitelné na papíru palety, barevné dlaždice
@@ -197,9 +201,12 @@ ASCII-convert/
   shaderem. Braille se kreslí jako skutečné body, proto je ostrý a zarovnaný na všech
   zařízeních.
 - **Kamera** (CameraX): analýza snímků v nízkém rozlišení pro živý náhled a samostatné
-  `ImageCapture` pro ostrou fotku. `RgbaFrameReader` čte pixely přímo z bufferu kamery do
-  jednoho pole, které se používá pořád dokola. Otočení a zrcadlení řeší v indexech, takže
-  snímek nic nealokuje.
+  `ImageCapture` pro ostrou fotku.
+  - `RgbaFrameReader` čte pixely přímo z bufferu kamery do jednoho pole, které se používá
+    pořád dokola. Otočení a zrcadlení řeší v indexech, takže snímek nic nealokuje.
+  - `LiveConverter` průměruje vzorky přes několik snímků, velké změny ale propustí hned. Znak
+    drží, dokud se tón buňky zřetelně nepohne (hystereze). Když se hýbe celý obraz, obojí
+    vypne.
 - Závislosti se předávají ručně přes `AppContainer` – pro aplikaci této velikosti je to
   jednodušší a rychlejší na sestavení než DI framework.
 
@@ -210,7 +217,7 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 ## Testy a CI
 
 - `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, barvy z fotky,
-  export, opakované použití vzorků).
+  export, opakované použití vzorků, klidný živý obraz).
 - `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore, sbírka
   na disku, kontrast textů ve všech paletách a čtení snímků z kamery.
 - **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug

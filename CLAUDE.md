@@ -72,7 +72,11 @@ application ID is tied to the Google Play entry and must never change.
   image into the grids the options need; it reads every pixel and takes most of the time.
   `convert(samples, options)` does tones, dithering, glyphs and outlines. `Samples.fit(options)`
   says whether options can reuse samples: the same width, glyph kind, cell shape and outline mode.
-  `CachingConverter` keeps the samples of the last image, for the editor.
+  - `CachingConverter` keeps the samples of the last image, for the editor.
+  - `LiveConverter` keeps the state of a camera stream. It smooths the samples over frames but
+    lets large changes through, keeps glyphs within a noise margin (`GlyphHold`), turns both off
+    while the whole picture moves, and dithers with Bayer instead of error diffusion. Its
+    constants were tuned on simulated streams with noise, exposure jitter, hand shake and pans.
 - `CharRamp` stores each glyph with its measured ink coverage, so tone steps are uneven on
   purpose. Built-in ramps are in `CharRamps`. Custom characters are measured at runtime by the
   app's `GlyphMeasurer` in the bundled JetBrains Mono.
@@ -143,7 +147,7 @@ application ID is tied to the Google Play entry and must never change.
   - `CameraViewModel` owns the CameraX use cases. `ImageAnalysis` delivers RGBA frames and keeps
     only the latest. `RgbaFrameReader` reads each frame from the plane buffer into one reused
     array (rotation and mirroring happen in the indices, large frames are averaged by blocks),
-    which is converted at no more than `StudioSettings.MAX_LIVE_COLUMNS` columns.
+    and `LiveConverter` converts it at no more than `StudioSettings.MAX_LIVE_COLUMNS` columns.
     `ImageCapture` takes the full photo, which goes through `ImageRepository` into the editor.
   - `CameraScreen` handles the permission and camera binding, then renders the stateless
     `CameraContent`.
