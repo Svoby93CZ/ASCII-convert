@@ -30,3 +30,4 @@ rootProject.name = "AsciiStudio"
 
 include(":app")
 include(":engine")
+include(":baselineprofile")

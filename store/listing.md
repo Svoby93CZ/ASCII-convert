@@ -23,22 +23,25 @@ Proměňte fotky v ASCII art. Braille, barvy, obrysy, živá kamera. Bez interne
 ASCII Studio promění vaše fotky v umění složené ze znaků. Vyberte fotku z galerie, nasdílejte obrázek z jiné aplikace nebo namiřte kameru a sledujte svět jako ASCII art v reálném čase.
 
 HLAVNÍ FUNKCE
-• Živá ASCII kamera: obraz se převádí na znaky v reálném čase, znaky, šířku, barvy i pozadí nastavíte přímo v kameře a fotku pak doladíte v editoru
-• Galerie: ASCII arty si uložíte i s fotkou a nastavením a kdykoli je znovu otevřete a upravíte
+• Živá ASCII kamera: obraz se převádí na znaky v reálném čase a nebliká, znaky, šířku, barvy i pozadí nastavíte přímo v kameře a fotku pak doladíte v editoru
+• Video z kamery: živý ASCII obraz nahrajete jako MP4 a hned ho nasdílíte, vzhled můžete měnit i během nahrávání
+• Sbírka: ASCII arty si uložíte i s fotkou a nastavením a kdykoli je znovu otevřete a upravíte
 • Retro vzhled: okna ve stylu terminálu a pozadí s padajícími znaky, mřížkou nebo CRT monitorem, vše v barvách zvolené palety
-• Okamžitý náhled s přibližováním dvěma prsty a porovnáním s originálem
+• Předvolby: osm hotových vzhledů s náhledem vaší fotky (Matrix, Noviny, Game Boy, Modrotisk, Neon a další) a vlastní uložené předvolby
+• Okamžitý náhled s přibližováním dvěma prsty, porovnáním s originálem a krokem zpět
 • Sady znaků: standardní, detailní, bloky ░▒▓█, Braille s dvojnásobným rozlišením, binární 0 a 1 i vlastní znaky
 • Kalibrované tóny: hustota každého znaku je změřená, takže přechody odpovídají fotce
 • Úpravy tónu: automatické úrovně, jas, kontrast, ostrost a invertování
 • Dithering Floyd–Steinberg, Atkinson a Bayer
 • Obrysy: detekce hran kreslí linky znaky | / - \
-• Barvy: 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo barvy přímo z fotky
+• Barvy: 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo barvy přímo z fotky, které zůstanou čitelné i ve stínech, a barevné dlaždice pod znaky
 
 EXPORT
-• Kopírování textu do schránky
-• Sdílení textu nebo obrázku PNG
-• Uložení do složky Obrázky
-• Soubory TXT, barevné HTML a ANSI pro terminál
+• Obrázek PNG v původní velikosti, pro příspěvky (1:1, 4:5) a příběhy (9:16), jako tapeta nebo k tisku na A4 ve 300 dpi
+• Vektorové PDF k tisku a SVG pro grafické programy a plotry
+• Kopírování textu, i pro chat: WhatsApp, Telegram a Discord ho ukážou neproporcionálním písmem
+• Sdílení textu nebo obrázku a uložení do složky Obrázky
+• Soubory TXT, HTML s barvami i písmem a ANSI pro terminál
 
 SOUKROMÍ
 Vše se počítá přímo v telefonu. Aplikace nemá přístup k internetu, neobsahuje reklamy ani sledování a vaše fotky nikam neodesílá.
@@ -66,22 +69,25 @@ Turn photos into ASCII art. Braille, colors, outlines, live camera. Offline.
 ASCII Studio turns your photos into art made of characters. Pick a photo from your gallery, share a picture from another app or point your camera and watch the world as ASCII art in real time.
 
 FEATURES
-• Live ASCII camera: see the camera image as characters in real time, set the characters, width, colors and background right in the camera, then fine-tune the photo in the editor
-• Gallery: keep your ASCII art together with its photo and settings, open it again and keep editing any time
+• Live ASCII camera: see the camera image as characters in real time without flicker, set the characters, width, colors and background right in the camera, then fine-tune the photo in the editor
+• Camera videos: record the live ASCII image as an MP4 and share it right away, changing the look while you record
+• Collection: keep your ASCII art together with its photo and settings, open it again and keep editing any time
 • Retro look: terminal-style windows and backgrounds with falling characters, a grid or a CRT monitor, all in the colors of the chosen palette
-• Instant preview with pinch to zoom and a comparison with the original
+• Presets: eight ready-made looks previewed on your own photo (Matrix, Newspaper, Game Boy, Blueprint, Neon and more) and presets of your own
+• Instant preview with pinch to zoom, a comparison with the original, and undo
 • Character sets: standard, detailed, blocks ░▒▓█, Braille with double resolution, binary 0 and 1, or your own characters
 • Calibrated tones: the ink density of every character is measured, so gradients match the photo
 • Tone controls: auto levels, brightness, contrast, sharpness and invert
 • Floyd–Steinberg, Atkinson and Bayer dithering
 • Outlines: edge detection draws lines with the characters | / - \
-• Colors: 10 palettes (Terminal, Amber, Ruby, Ice, Night, Synthwave, Blueprint, LCD, Paper, Ink) or the colors of the photo itself
+• Colors: 10 palettes (Terminal, Amber, Ruby, Ice, Night, Synthwave, Blueprint, LCD, Paper, Ink) or the colors of the photo itself, readable even in the shadows, with optional color tiles behind the characters
 
 EXPORT
-• Copy the text to the clipboard
-• Share the text or a PNG image
-• Save to the Pictures folder
-• TXT, colored HTML and ANSI files for the terminal
+• PNG images at their own size, for posts (1:1, 4:5) and stories (9:16), as a wallpaper or for printing on A4 at 300 dpi
+• Vector PDF for printing and SVG for design apps and plotters
+• Copy the text, also for chats: WhatsApp, Telegram and Discord show it in a monospaced font
+• Share the text or the image, or save it to the Pictures folder
+• TXT, HTML with the colors and the font, and ANSI files for the terminal
 
 PRIVACY
 Everything is computed on your phone. The app has no internet access, no ads and no tracking, and your photos never leave your device.

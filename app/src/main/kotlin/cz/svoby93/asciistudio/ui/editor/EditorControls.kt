@@ -5,6 +5,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,14 +33,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -54,6 +63,9 @@ import cz.svoby93.asciistudio.engine.Dithering
 import cz.svoby93.asciistudio.engine.EdgeMode
 import cz.svoby93.asciistudio.ui.theme.MonoFontFamily
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.launch
 
 typealias SettingsChange = ((StudioSettings) -> StudioSettings) -> Unit
 
@@ -90,6 +102,7 @@ fun StyleControls(
             value = columns.toFloat(),
             valueRange = columnsRange.first.toFloat()..columnsRange.last.toFloat(),
             onValueChange = { value -> onChange { it.copy(columns = value.roundToInt()) } },
+            onReset = { onChange { it.copy(columns = Defaults.columns) } },
         )
         SectionLabel(R.string.label_edges)
         SegmentedChoice(
@@ -110,6 +123,7 @@ fun StyleControls(
                 value = settings.edgeSensitivity,
                 valueRange = 0f..1f,
                 onValueChange = { value -> onChange { it.copy(edgeSensitivity = value) } },
+                onReset = { onChange { it.copy(edgeSensitivity = Defaults.edgeSensitivity) } },
             )
         }
     }
@@ -123,18 +137,21 @@ fun ToneControls(settings: StudioSettings, onChange: SettingsChange) {
             value = settings.brightness,
             valueRange = -1f..1f,
             onValueChange = { value -> onChange { it.copy(brightness = value) } },
+            onReset = { onChange { it.copy(brightness = Defaults.brightness) } },
         )
         PercentSlider(
             label = R.string.label_contrast,
             value = settings.contrast,
             valueRange = -1f..1f,
             onValueChange = { value -> onChange { it.copy(contrast = value) } },
+            onReset = { onChange { it.copy(contrast = Defaults.contrast) } },
         )
         PercentSlider(
             label = R.string.label_sharpness,
             value = settings.sharpness,
             valueRange = 0f..1f,
             onValueChange = { value -> onChange { it.copy(sharpness = value) } },
+            onReset = { onChange { it.copy(sharpness = Defaults.sharpness) } },
         )
         SwitchRow(
             title = R.string.label_auto_levels,
@@ -169,6 +186,11 @@ fun ToneControls(settings: StudioSettings, onChange: SettingsChange) {
                 )
             }
         }
+        Text(
+            stringResource(R.string.slider_reset_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -200,6 +222,13 @@ fun ColorControls(settings: StudioSettings, onChange: SettingsChange) {
                 )
             }
         }
+        // Below the palettes, which are used far more often and must stay in view in the camera.
+        SwitchRow(
+            title = R.string.label_color_tiles,
+            supporting = R.string.color_tiles_supporting,
+            checked = settings.colorTiles,
+            onCheckedChange = { checked -> onChange { it.copy(colorTiles = checked) } },
+        )
     }
 }
 
@@ -267,6 +296,7 @@ private fun PercentSlider(
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit,
+    onReset: () -> Unit,
 ) {
     LabeledSlider(
         label = stringResource(label),
@@ -274,9 +304,11 @@ private fun PercentSlider(
         value = value,
         valueRange = valueRange,
         onValueChange = onValueChange,
+        onReset = onReset,
     )
 }
 
+/** A slider with its label and value; a double tap, or the accessibility action, brings back the default. */
 @Composable
 private fun LabeledSlider(
     label: String,
@@ -284,8 +316,11 @@ private fun LabeledSlider(
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit,
+    onReset: () -> Unit,
 ) {
-    Column {
+    val resetLabel = stringResource(R.string.slider_reset)
+    val currentOnReset by rememberUpdatedState(onReset)
+    Column(Modifier.observeDoubleTap { currentOnReset() }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
             Text(valueText, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
@@ -294,10 +329,64 @@ private fun LabeledSlider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
-            modifier = Modifier.semantics { contentDescription = label },
+            modifier = Modifier.semantics {
+                contentDescription = label
+                customActions = listOf(
+                    CustomAccessibilityAction(resetLabel) {
+                        currentOnReset()
+                        true
+                    },
+                )
+            },
         )
     }
 }
+
+/**
+ * Calls [onDoubleTap] after two quick taps in about the same place. The taps still reach the
+ * children, so a slider moves as usual, and the call comes after the slider has handled them.
+ */
+private fun Modifier.observeDoubleTap(onDoubleTap: () -> Unit): Modifier = pointerInput(Unit) {
+    var lastTapMillis = 0L
+    var lastTapPosition: Offset? = null
+    val slop = DoubleTapSlop.toPx()
+    val scope = CoroutineScope(currentCoroutineContext())
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        // A tap ends close to where it began and before a long press would start.
+        val up = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+            var change: PointerInputChange
+            do {
+                change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
+                    ?: return@withTimeoutOrNull null
+                if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
+                    return@withTimeoutOrNull null
+                }
+            } while (change.pressed)
+            change
+        }
+        val previous = lastTapPosition
+        when {
+            up == null -> lastTapPosition = null
+            previous != null &&
+                down.uptimeMillis - lastTapMillis <= viewConfiguration.doubleTapTimeoutMillis &&
+                (down.position - previous).getDistance() <= slop -> {
+                lastTapPosition = null
+                scope.launch { onDoubleTap() }
+            }
+            else -> {
+                lastTapMillis = up.uptimeMillis
+                lastTapPosition = up.position
+            }
+        }
+    }
+}
+
+/** The defaults that a double tap brings back. */
+private val Defaults = StudioSettings()
+
+/** How far apart the two taps of a double tap may be. */
+private val DoubleTapSlop = 48.dp
 
 @Composable
 private fun SwitchRow(

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -60,6 +59,7 @@ import cz.svoby93.asciistudio.data.StudioSettings
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.render.artStyle
 import cz.svoby93.asciistudio.ui.components.AsciiArtView
+import cz.svoby93.asciistudio.ui.editor.PresetShelf
 import cz.svoby93.asciistudio.ui.editor.SettingsChange
 import cz.svoby93.asciistudio.ui.studio.BlinkingDot
 import cz.svoby93.asciistudio.ui.studio.LocalStudioColors
@@ -69,6 +69,7 @@ import cz.svoby93.asciistudio.ui.studio.SettingsWindow
 import cz.svoby93.asciistudio.ui.studio.StudioTopBar
 import cz.svoby93.asciistudio.ui.studio.TerminalFrame
 import cz.svoby93.asciistudio.ui.studio.TerminalLine
+import java.util.Locale
 
 /**
  * The live camera screen apart from the camera itself: a window with the live art and a window
@@ -81,14 +82,24 @@ fun CameraContent(
     frontCamera: Boolean,
     cameraUnavailable: Boolean,
     capturing: Boolean,
+    recordingSeconds: Int?,
     onBack: () -> Unit,
     onCapture: () -> Unit,
+    onToggleRecording: () -> Unit,
     onSwitchCamera: () -> Unit,
     onChange: SettingsChange,
+    presets: PresetShelf,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    var tab by rememberSaveable { mutableStateOf(SettingsTab.STYLE) }
+    val recording = recordingSeconds != null
+    // A photo would leave the camera, so it waits until the recording is done.
+    val shutter = ShutterState(
+        canCapture = !capturing && !cameraUnavailable && !recording,
+        canRecord = art != null && !cameraUnavailable,
+        recording = recording,
+    )
+    var tab by rememberSaveable { mutableStateOf(SettingsTab.PRESETS) }
     var expanded by rememberSaveable { mutableStateOf(true) }
     val onPhotoColorsChange = { photo: Boolean ->
         onChange { it.copy(colorMode = if (photo) ColorMode.PHOTO else ColorMode.PALETTE) }
@@ -109,6 +120,7 @@ fun CameraContent(
                         settings = settings,
                         frontCamera = frontCamera,
                         unavailable = cameraUnavailable,
+                        recordingSeconds = recordingSeconds,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -123,6 +135,7 @@ fun CameraContent(
                         SettingsWindow(
                             settings = settings,
                             onChange = onChange,
+                            presets = presets,
                             tab = tab,
                             onTabChange = { tab = it },
                             expanded = true,
@@ -134,7 +147,7 @@ fun CameraContent(
                                 .weight(1f)
                                 .padding(start = 8.dp, end = 16.dp),
                         )
-                        ShutterBar(!capturing && !cameraUnavailable, onCapture, onSwitchCamera, buttonSize = 48.dp)
+                        ShutterBar(shutter, onCapture, onToggleRecording, onSwitchCamera, buttonSize = 48.dp)
                     }
                 }
             } else {
@@ -150,6 +163,7 @@ fun CameraContent(
                         settings = settings,
                         frontCamera = frontCamera,
                         unavailable = cameraUnavailable,
+                        recordingSeconds = recordingSeconds,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
@@ -158,6 +172,7 @@ fun CameraContent(
                     SettingsWindow(
                         settings = settings,
                         onChange = onChange,
+                        presets = presets,
                         tab = tab,
                         onTabChange = { tab = it },
                         expanded = expanded,
@@ -169,7 +184,7 @@ fun CameraContent(
                             .fillMaxWidth()
                             .padding(start = 16.dp, end = 16.dp, top = 8.dp),
                     )
-                    ShutterBar(!capturing && !cameraUnavailable, onCapture, onSwitchCamera)
+                    ShutterBar(shutter, onCapture, onToggleRecording, onSwitchCamera)
                 }
             }
         }
@@ -195,10 +210,16 @@ private fun CameraWindow(
     settings: StudioSettings,
     frontCamera: Boolean,
     unavailable: Boolean,
+    recordingSeconds: Int?,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalStudioColors.current
-    val live = stringResource(R.string.camera_live)
+    val live = if (recordingSeconds != null) {
+        val time = String.format(Locale.ROOT, "%d:%02d", recordingSeconds / 60, recordingSeconds % 60)
+        stringResource(R.string.camera_recording, time)
+    } else {
+        stringResource(R.string.camera_live)
+    }
     val charset = stringResource(settings.charset.label).uppercase()
     val status: (@Composable RowScope.() -> Unit)? = if (art != null && !unavailable) {
         { BlinkingDot(live) }
@@ -243,10 +264,14 @@ private fun CameraWindow(
     }
 }
 
+/** What the buttons under the camera can do right now. */
+private class ShutterState(val canCapture: Boolean, val canRecord: Boolean, val recording: Boolean)
+
 @Composable
 private fun ShutterBar(
-    enabled: Boolean,
+    state: ShutterState,
     onCapture: () -> Unit,
+    onToggleRecording: () -> Unit,
     onSwitchCamera: () -> Unit,
     buttonSize: Dp = 52.dp,
 ) {
@@ -257,8 +282,15 @@ private fun ShutterBar(
             .fillMaxWidth()
             .padding(vertical = 12.dp),
     ) {
-        Spacer(Modifier.size(buttonSize))
-        ShutterButton(enabled = enabled, onClick = onCapture)
+        RoundButton(
+            icon = if (state.recording) R.drawable.ic_stop_circle else R.drawable.ic_videocam,
+            description = if (state.recording) R.string.camera_stop_recording else R.string.camera_record,
+            size = buttonSize,
+            checked = state.recording,
+            enabled = state.canRecord || state.recording,
+            onClick = onToggleRecording,
+        )
+        ShutterButton(enabled = state.canCapture, onClick = onCapture)
         RoundButton(
             icon = R.drawable.ic_cameraswitch,
             description = R.string.camera_switch,

@@ -78,9 +78,104 @@ tap() { # label... [x y]: taps the first label found, or the fallback position w
   sleep 1
 }
 
+drag_up() { # label: drags the scrollable content under the label up, to show what is below it
+  dump current
+  local target
+  target=$(python3 "$UI" find "$OUT/current.xml" "$1")
+  if [ -z "$target" ]; then
+    echo "!!! could not find '$1' on screen"
+    failures=$((failures + 1))
+    return 1
+  fi
+  set -- $target
+  adb shell input swipe "$1" "$2" "$1" $(( $2 - 400 )) 500
+  sleep 1
+}
+
+hold() { # label: keeps a finger on the first element with the label for a second
+  dump current
+  local target
+  target=$(python3 "$UI" find "$OUT/current.xml" "$1")
+  if [ -z "$target" ]; then
+    echo "!!! could not find '$1' on screen"
+    failures=$((failures + 1))
+    return 1
+  fi
+  set -- $target
+  adb shell input swipe "$1" "$2" "$1" "$2" 1000
+  sleep 1
+}
+
+double_tap() { # label: taps the first element with the label twice, within the double tap timeout
+  dump current
+  local target start
+  target=$(python3 "$UI" find "$OUT/current.xml" "$1")
+  if [ -z "$target" ]; then
+    echo "!!! could not find '$1' on screen"
+    failures=$((failures + 1))
+    return 1
+  fi
+  start=$(date +%s%N)
+  # Both taps in one adb shell: each `input` takes some tens of milliseconds, a new adb call more.
+  adb shell "input tap $target; input tap $target"
+  echo "(double tap took $(( ($(date +%s%N) - start) / 1000000 )) ms)"
+  sleep 1
+}
+
+save_file() { # label extension: saves through the system file picker and prints the file gzipped
+  tap "Export" && drag_up "Copy text" && tap "$1" || return 1
+  screen "10-picker-$2" 3
+  tap "Save" || return 1
+  sleep 3
+  local name
+  name=$(adb shell ls -t /sdcard/Download | tr -d '\r' | grep "\.$2\$" | head -n 1)
+  if [ -z "$name" ]; then
+    echo "!!! no .$2 file was saved"
+    failures=$((failures + 1))
+    return 1
+  fi
+  echo "===== BEGIN FILE $name ====="
+  adb exec-out cat "/sdcard/Download/$name" | gzip -9 | base64 -w 4000
+  echo "===== END FILE $name ====="
+}
+
 app_log() {
   echo "----- app log -----"
   adb logcat -d -s AsciiStudio:V | tail -n 40
+}
+
+measure() { # name: frames the app draws and CPU time it takes during 10 seconds of the current screen
+  local pid before after frames ticks cpu
+  pid=$(adb shell pidof "$PKG" | tr -d '\r')
+  if [ -z "$pid" ]; then
+    echo "!!! $PKG is not running, $1 not measured"
+    failures=$((failures + 1))
+    return 1
+  fi
+  adb shell dumpsys gfxinfo "$PKG" reset >/dev/null
+  before=$(adb shell cat "/proc/$pid/stat" | tr -d '\r' | awk '{print $14 + $15}')
+  sleep 10
+  after=$(adb shell cat "/proc/$pid/stat" | tr -d '\r' | awk '{print $14 + $15}')
+  frames=$(adb shell dumpsys gfxinfo "$PKG" | tr -d '\r' | sed -n 's/^Total frames rendered: //p' | head -n 1)
+  ticks=$(adb shell getconf CLK_TCK 2>/dev/null | tr -d '\r')
+  [[ "$ticks" =~ ^[0-9]+$ ]] || ticks=100
+  cpu="?"
+  if [[ "$before" =~ ^[0-9]+$ && "$after" =~ ^[0-9]+$ ]]; then
+    cpu=$(( (after - before) * 1000 / ticks / 10 ))
+  fi
+  echo "===== FRAMES $1: ${frames:-?} frames in 10 s, CPU $cpu ms per second ====="
+}
+
+battery_saver() { # on|off; the system refuses battery saver while the device charges
+  if [ "$1" = on ]; then
+    adb shell dumpsys battery unplug
+    adb shell cmd power set-mode 1
+  else
+    adb shell cmd power set-mode 0
+    adb shell dumpsys battery reset
+  fi
+  sleep 2
+  echo "(battery saver: $(adb shell settings get global low_power | tr -d '\r'))"
 }
 
 adb install -r "$APK" || exit 1
@@ -151,17 +246,56 @@ screen 04-editor 8
 alive editor
 app_log
 
+echo "### Presets, undo and redo"
+# The editor opens on the presets, whose tiles show the photo in every look.
+tap "Newspaper" && screen 04-preset-newspaper 3
+tap "Undo" && screen 04-undo 2
+tap "Redo" && screen 04-redo 2
+tap "New preset" && screen 04-preset-new 1 && tap "Save" && screen 04-preset-saved 2
+hold "My preset 1" && screen 04-preset-delete 1 && tap "Delete" && screen 04-preset-deleted 2
+tap "More options" && tap "Reset settings" && screen 04-reset 1
+# The message offers to undo the reset; the button in the window border does the same.
+tap "Undo" && screen 04-reset-undone 2
+# Newspaper has a contrast of 30 %. The first tap moves the slider to 0 %, the second brings back
+# the default of 15 %, and one undo returns to 30 %.
+tap "TONE" && double_tap "desc:Contrast" && screen 04-slider-reset 2
+tap "Undo" && screen 04-slider-undone 2
+# Back to the default look, so that the later screens stay comparable between runs.
+tap "PRESETS" && tap "Classic"
+alive presets
+
 echo "### Editor controls"
-tap "Tone" && screen 05-tone 3
-tap "Colors" && tap "Photo colors" && screen 06-photo-colors 3
-tap "Style" && tap "Braille" && screen 07-braille 3
+# Exact labels: the tabs are in capitals, and other texts mention tones and colors.
+tap "TONE" && screen 05-tone 3
+tap "COLORS" && tap "Photo colors" && screen 06-photo-colors 3
+# Color tiles stay on, so the later steps draw them too: Braille, the saved preview and the camera.
+drag_up "Glyph color" && tap "Color tiles" && screen 06-color-tiles 3
+tap "STYLE" && tap "Braille" && screen 07-braille 3
 tap "Detailed" && tap "Mixed" && screen 08-outlines 3
 tap "Show original" && screen 09-original 3
 tap "Show original"
 tap "Export" && screen 10-export-sheet 3
+drag_up "Copy text" && screen 10-export-sheet-files 1
 adb shell input keyevent KEYCODE_BACK
 sleep 2
-tap "Save to gallery" && screen 10-saved-to-gallery 3
+# A story keeps the art clear of the buttons that stories show at the top and the bottom.
+tap "Export" && tap "Story 9:16" && screen 10-export-story 1 && tap "Save to Pictures" && screen 10-saved-story 3
+# The device shell splits the command again, so the folder with a space is quoted for it.
+story=$(adb shell "ls -t '/sdcard/Pictures/ASCII Studio'" | tr -d '\r' | head -n 1)
+size=$(adb exec-out "cat '/sdcard/Pictures/ASCII Studio/$story'" | head -c 24 | od -An -tu1 | tr -s ' \n' ' ')
+echo "Story picture $story: $size"
+# The width and height of a PNG are big-endian numbers at bytes 16 to 23.
+if [ "$(echo $size | cut -d' ' -f17-24)" != "0 0 4 56 0 0 7 128" ]; then
+  echo "!!! the story picture is not 1080 × 1920"
+  failures=$((failures + 1))
+fi
+save_file "Save as PDF" pdf
+save_file "Save as SVG" svg
+save_file "Save as HTML" html
+alive export
+# The art is wider than a chat bubble, so a narrower copy is offered.
+tap "Export" && tap "Copy for chat" && screen 10-chat-width 2 && tap "Copy 32 wide" && screen 10-chat-copied 2
+tap "Save to collection" && screen 10-saved-to-collection 3
 
 echo "### Landscape editor"
 adb shell wm user-rotation lock 1 || adb shell settings put system user_rotation 1
@@ -174,14 +308,14 @@ echo "### Back home"
 adb shell input keyevent KEYCODE_BACK
 screen 12-home-continue 4
 
-echo "### Gallery"
-tap "Gallery" && screen 12-gallery 3
+echo "### Collection"
+tap "Collection" && screen 12-collection 3
 # The saved art opens in the editor with its settings.
-tap "ASCII art" && screen 12-gallery-opened 6
-alive gallery
+tap "ASCII art" && screen 12-collection-opened 6
+alive collection
 adb shell input keyevent KEYCODE_BACK
 sleep 2
-tap "Delete" && screen 12-gallery-delete 2 && tap "Delete" && screen 12-gallery-empty 2
+tap "Delete" && screen 12-collection-delete 2 && tap "Delete" && screen 12-collection-empty 2
 adb shell input keyevent KEYCODE_BACK
 sleep 2
 
@@ -193,6 +327,18 @@ tap "COLORS" && tap "Amber" && screen 13-camera-amber 4
 tap "BACKGROUND" && tap "Rain" && screen 13-camera-rain 4
 tap "Hide settings" && screen 13-camera-folded 3
 tap "Show settings"
+# A few seconds of the live art become an MP4 in Movies/ASCII Studio; its middle frame is printed.
+tap "Record video" && screen 13-recording 5 && tap "Stop recording" && screen 13-video-saved 3
+video=$(adb shell "ls -t '/sdcard/Movies/ASCII Studio'" | tr -d '\r' | head -n 1)
+adb exec-out "cat '/sdcard/Movies/ASCII Studio/$video'" > "$OUT/video.mp4"
+if python3 "$UI" video "$OUT/video.mp4" "$OUT/13-video-frame.png"; then
+  echo "===== BEGIN IMAGE 13-video-frame ====="
+  python3 "$UI" encode "$OUT/13-video-frame.png"
+  echo "===== END IMAGE 13-video-frame ====="
+else
+  echo "!!! the recorded video '$video' cannot be played"
+  failures=$((failures + 1))
+fi
 # Back to the default look, so that the later screens stay comparable between runs.
 tap "COLORS" && tap "Terminal"
 tap "BACKGROUND" && tap "ASCII"
@@ -203,6 +349,31 @@ screen 14-captured 8
 alive capture
 adb shell input keyevent KEYCODE_BACK
 sleep 2
+
+echo "### Frames of moving decorations"
+# The emulator runs without animations. They come back for a while, to count the frames they draw.
+# The emulator renders in software; on a small screen it keeps up with the frame rate of the display.
+adb shell settings put global animator_duration_scale 1
+adb shell wm size 360x800
+adb shell wm density 140
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$ACTIVITY"
+sleep 3
+measure 18-home
+tap "Live ASCII camera" && sleep 5 && measure 18-camera
+tap "BACKGROUND" && tap "Rain" && measure 18-camera-rain
+battery_saver on
+measure 18-camera-rain-saver
+tap "ASCII"
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+measure 18-home-saver
+battery_saver off
+screen 18-home-small 1
+adb shell wm size reset
+adb shell wm density reset
+adb shell settings put global animator_duration_scale 0
+alive frames
 
 echo "### Czech and dark theme"
 adb shell cmd uimode night yes
@@ -216,7 +387,7 @@ sleep 1
 tap "Pokračovat v úpravách" && screen 16-editor-cs-dark 6
 adb shell input keyevent KEYCODE_BACK
 sleep 2
-tap "Galerie" && screen 16-gallery-cs 3
+tap "Sbírka" && screen 16-collection-cs 3
 adb shell input keyevent KEYCODE_BACK
 sleep 2
 tap "Živá ASCII kamera" && screen 17-camera-cs 8

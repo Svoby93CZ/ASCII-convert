@@ -1,6 +1,5 @@
 package cz.svoby93.asciistudio.ui.studio
 
-import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -26,8 +25,8 @@ import cz.svoby93.asciistudio.data.StudioSettings
 fun StudioRoot(settings: StudioSettings?, content: @Composable () -> Unit) {
     val palette = settings?.palette ?: ArtPalette.TERMINAL
     val colors = remember(palette) { palette.studioColors() }
-    // Respect the system "remove animations" setting: moving backgrounds and blinking stop.
-    val animate = remember { ValueAnimator.areAnimatorsEnabled() }
+    // Moving backgrounds and blinking stop with "remove animations" and in battery saver.
+    val animate = rememberDecorationsMove()
     SystemBarsAppearance(light = colors.isLight)
     StudioTheme(colors, animate) {
         Box(

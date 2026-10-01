@@ -32,30 +32,54 @@ v telefonu, bez internetu a bez odesílání dat.
   obrázků** do aplikace z galerie, prohlížeče nebo chatu.
 - **Živá ASCII kamera** – obraz z kamery se převádí na ASCII art v reálném čase, přepínání
   přední/zadní kamery, fotka v plném rozlišení rovnou do editoru. Přímo v kameře jde nastavit
-  sadu znaků, šířku, obrysy, barvy i tón.
+  sadu znaků, šířku, obrysy, barvy i tón. Obraz je klidný: šum senzoru ani kolísání expozice
+  znaky nepřepínají, pohyb kamery se přitom ukáže hned.
+- **Video z kamery** – živý ASCII obraz se nahraje jako MP4 do složky `Filmy/ASCII Studio`
+  a jde hned sdílet. Vzhled se dá měnit i během nahrávání. Video má jen ASCII art bez zvuku,
+  takže aplikace nepotřebuje mikrofon. Nahrávání se zastaví po 3 minutách.
 - **Editor s okamžitým náhledem** – přibližování dvěma prsty, posun, dvojité klepnutí,
   porovnání s originálem. Nastavení je v okně se záložkami stejně jako v kameře.
-- **Galerie** – ASCII arty uložené z editoru zůstávají v aplikaci i s fotkou a nastavením, takže
+- **Předvolby** – osm vzhledů na jedno klepnutí: Klasika, Matrix, Noviny, Game Boy, Modrotisk,
+  Neon, Mozaika a Tuš. Každá dlaždice ukazuje vaši fotku v daném vzhledu, v kameře živý obraz.
+  Vlastní vzhled uložíte mezi „Moje předvolby“. Předvolba mění znaky, tóny a barvy, šířka
+  a pozadí zůstanou.
+- **Zpět a Znovu** v editoru. Obnovení výchozího nastavení jde vrátit a dvojité klepnutí na
+  posuvník vrátí jen jeho hodnotu.
+- **Sbírka** – ASCII arty uložené z editoru zůstávají v aplikaci i s fotkou a nastavením, takže
   je jde kdykoli znovu otevřít, upravit nebo smazat.
-- **Vzhled terminálu v celé aplikaci** – úvodní obrazovka, editor, galerie i kamera mají okna
+- **Vzhled terminálu v celé aplikaci** – úvodní obrazovka, editor, sbírka i kamera mají okna
   v rámečcích ve stylu terminálových programů a barví se podle zvolené palety. Za okny je pozadí
   podle výběru: ASCII vinětace, padající znaky, mřížka, CRT monitor nebo jednobarevné.
+  Pohyblivé pozadí, blikání i donut šetří baterii: kreslí se nejvýš 30× za sekundu a v úsporném
+  režimu stojí.
 - **Sady znaků:** standardní, detailní (28 úrovní), bloky `░▒▓█`, **Braille** (2×4 body na
   znak = dvojnásobné rozlišení), binární `0/1` a vlastní znaky.
 - **Kalibrované tóny:** hustota „inkoustu“ každého znaku je změřená ve vestavěném písmu
   JetBrains Mono, takže přechody odpovídají fotce. Vlastní znaky se proměří a seřadí
   automaticky.
 - **Úpravy tónu:** automatické úrovně, jas, kontrast, ostrost, invertování.
-- **Dithering:** Floyd–Steinberg, Atkinson a Bayer.
+- **Dithering:** Floyd–Steinberg, Atkinson a Bayer. Živá kamera místo Floyd–Steinberga
+  a Atkinsona kreslí Bayerovu mřížku, která mezi snímky nebliká. Vyfocená fotka dostane zvolený
+  dithering.
 - **Obrysy:** detekce hran (Sobel + tenzor struktury) kreslí linky znaky `| / - \`,
   v kombinaci s tóny nebo samostatně.
 - **Barvy:** 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo
-  barvy z fotky pro každý znak zvlášť.
-- **Export:** kopírování textu, sdílení textu nebo PNG, uložení do složky
-  `Obrázky/ASCII Studio`, TXT, barevné HTML a ANSI pro terminál (`cat obrazek.ans`).
-- Material 3 v barvách zvolené palety, edge-to-edge, prediktivní gesto zpět, rozložení pro
-  tablety a na šířku, čeština a angličtina (jazyk lze nastavit pro aplikaci zvlášť v nastavení
-  Androidu 13+).
+  barvy z fotky. Znak převezme odstín své části fotky a jas nechá na hustotě znaků, takže je
+  čitelný i ve stínech. **Barevné dlaždice** pod znaky vrátí barvy fotky jako mozaiku.
+- **Export:**
+  - Obrázek PNG ke sdílení nebo do složky `Obrázky/ASCII Studio`: v původní velikosti, pro
+    příspěvky (čtverec 1:1, na výšku 4:5), pro příběhy (9:16, art mimo tlačítka nahoře a dole),
+    jako tapeta v rozlišení displeje nebo k tisku na A4 ve 300 dpi.
+  - Vektorové PDF na stránku A4 (znaky zůstanou textem) a SVG z obrysů písma, které vypadá
+    stejně v prohlížeči, v Inkscapu i na plotru.
+  - Kopírování textu a kopírování pro chat: blok kódu, který WhatsApp, Telegram i Discord ukážou
+    neproporcionálním písmem. U artu širšího než 32 znaků nabídne užší kopii, která se vejde do
+    bubliny.
+  - TXT, HTML a ANSI pro terminál (`cat obrazek.ans`). HTML nese podmnožinu písma s použitými
+    znaky (body Braille dokreslí), takže vypadá v každém prohlížeči jako v aplikaci.
+- Material 3 v barvách zvolené palety s kontrastem textů podle WCAG, edge-to-edge, prediktivní
+  gesto zpět, rozložení pro tablety a na šířku, čeština a angličtina (jazyk lze nastavit pro
+  aplikaci zvlášť v nastavení Androidu 13+).
 - Nastavení se pamatuje a rozpracovaný obrázek přežije i ukončení aplikace systémem.
 
 ## Instalace hotového APK
@@ -94,6 +118,7 @@ export ANDROID_HOME="$HOME/Android/Sdk"   # cesta k SDK z Android Studia
 ./gradlew :engine:test                 # testy převodního enginu (běží i bez Android SDK)
 ./gradlew :app:testDebugUnitTest       # testy aplikace
 ./gradlew :app:assembleRelease         # APK v app/build/outputs/apk/release/
+./gradlew :app:generateBaselineProfile # nový Baseline Profile (připojený Android 13+, viz níže)
 ./gradlew :app:installDebug            # sestaví a nainstaluje do připojeného telefonu
 ```
 
@@ -169,27 +194,56 @@ Dobré vědět:
 ASCII-convert/
 ├── engine/   Čistý Kotlin (JVM), žádná závislost na Androidu
 │   ├── AsciiConverter   vzorkování → tóny → dithering → znaky (+ obrysy, Braille)
+│   ├── CachingConverter editor: posuvníky tónů fotku znovu nevzorkují
+│   ├── LiveConverter    živá kamera: klidný obraz mezi snímky
 │   ├── CharRamp(s)      sady znaků s naměřenou hustotou inkoustu
-│   ├── AsciiExport      HTML a ANSI export
+│   ├── AsciiExport      HTML, SVG, ANSI a text pro chat
+│   ├── font/            čtení písma TrueType, podmnožina pro HTML, glyfy Braille
+│   ├── PhotoColors      barvy z fotky čitelné na papíru palety, barevné dlaždice
 │   └── Donut            animace z úvodní obrazovky
-└── app/      Android aplikace (Jetpack Compose)
-    ├── data/     nastavení (DataStore), načítání obrázků, galerie, export a sdílení
-    ├── render/   kreslení ASCII artu na Canvas, měření znaků vlastního písma
-    └── ui/       společný vzhled (studio), domovská obrazovka, editor, galerie, živá kamera
+├── app/      Android aplikace (Jetpack Compose)
+│   ├── data/     nastavení (DataStore), načítání obrázků, sbírka, export a sdílení
+│   ├── render/   kreslení ASCII artu na Canvas, měření znaků vlastního písma
+│   └── ui/       společný vzhled (studio), domovská obrazovka, editor, sbírka, živá kamera
+└── baselineprofile/  generátor Baseline Profile a měření studeného startu
 ```
 
 - **Engine** pracuje s polem pixelů (`IntArray` ve formátu ARGB), takže je rychlý,
   deterministický a testovatelný na běžné JVM. Převod fotky o šířce 110 znaků trvá jednotky
   milisekund, 300 znaků v režimu Braille s ditheringem kolem 40 ms.
+- **Převod má dvě poloviny.** Vzorkování zprůměruje fotku do mřížky buněk. Čte každý pixel,
+  a proto zabere většinu času. Druhá polovina z mřížky udělá tóny a znaky. Editor si vzorky
+  pamatuje (`CachingConverter`), takže jas, kontrast, ostrost, automatické úrovně, invertování,
+  dithering ani citlivost obrysů fotku znovu nečtou.
 - **UI** je jednosměrné (UDF): `ViewModel` skládá `StateFlow` obrázku a nastavení, převod
   běží na pozadí přes `mapLatest`, takže posuvníky reagují okamžitě a zastaralé výsledky se
   zahodí.
+- **Animace** pozadí, blikajících světel a donutu tikají ze společných hodin 30× za sekundu,
+  ne s každým snímkem displeje (60–120 Hz), a všechny ve stejný okamžik, takže se překreslí
+  v jednom snímku. Čtou se až při kreslení, takže tik nespouští novou kompozici. Se systémovým
+  „Odstranit animace“ a v úsporném režimu baterie stojí.
 - **Renderer** kreslí každý řádek jedním voláním `drawText`. Barvy z fotky zajišťuje
   `BitmapShader` s jedním pixelem na znak (nearest-neighbour), takže i barevný náhled se
-  vykresluje stejně rychle jako jednobarevný. Braille se kreslí jako skutečné body, proto je
-  ostrý a zarovnaný na všech zařízeních.
+  vykresluje stejně rychle jako jednobarevný. Barevné dlaždice jsou jeden obdélník se stejným
+  shaderem. Braille se kreslí jako skutečné body, proto je ostrý a zarovnaný na všech
+  zařízeních.
 - **Kamera** (CameraX): analýza snímků v nízkém rozlišení pro živý náhled a samostatné
   `ImageCapture` pro ostrou fotku.
+  - `RgbaFrameReader` čte pixely přímo z bufferu kamery do jednoho pole, které se používá
+    pořád dokola. Otočení a zrcadlení řeší v indexech, takže snímek nic nealokuje.
+  - `LiveConverter` průměruje vzorky přes několik snímků, velké změny ale propustí hned. Znak
+    drží, dokud se tón buňky zřetelně nepohne (hystereze). Když se hýbe celý obraz, obojí
+    vypne.
+  - `ArtRecorder` nahrává video bez knihoven navíc: každý snímek artu nakreslí hardwarovým
+    plátnem na vstupní plochu kodéru H.264 (`MediaCodec`) a `MediaMuxer` ho zapíše do MP4
+    přímo v MediaStore. Snímek má na kratší straně 1080 px, nebo méně, pokud kodér víc neumí.
+- **Baseline Profile**: kód, který běží při startu a na hlavní cestě aplikací (kamera, fotka,
+  editor), se při instalaci zkompiluje předem, místo aby se napoprvé interpretoval. Profil
+  vygeneruje workflow *Baseline profile* na emulátoru (ručně v záložce *Actions* nebo commitem
+  s `[profile]` v popisu) a uložený je v `app/src/release/generated/baselineProfiles/`. Google Play
+  podle něj aplikaci zkompiluje už při instalaci. Mimo obchod ho po prvním spuštění zapíše
+  `profileinstaller` a systém aplikaci zkompiluje na pozadí. Po větších změnách kódu ho stojí
+  za to vygenerovat znovu.
 - Závislosti se předávají ručně přes `AppContainer` – pro aplikaci této velikosti je to
   jednodušší a rychlejší na sestavení než DI framework.
 
@@ -199,13 +253,22 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 
 ## Testy a CI
 
-- `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, export).
-- `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore a galerie
-  na disku.
+- `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, barvy z fotky,
+  export do HTML, SVG a ANSI, podmnožina písma, opakované použití vzorků, klidný živý obraz).
+- `./gradlew :app:testDebugUnitTest` – ukládání nastavení a předvoleb přes skutečný DataStore,
+  sbírka na disku, kontrast textů ve všech paletách, čtení snímků z kamery, historie Zpět/Znovu
+  a rozměry obrázků pro export.
 - **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug
   i release APK. S uloženým klíčem pro nahrávání připraví i bundle pro Google Play.
 - **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,
-  export, galerie, otočení na šířku, živá kamera, čeština a tmavý režim. Při pádu aplikace selže.
+  předvolby, Zpět a Znovu, export (obrázek pro příběh, PDF, SVG, HTML, kopírování pro chat),
+  sbírka, otočení na šířku, živá kamera s nahráním videa (zkontroluje, že jde přehrát),
+  čeština a tmavý režim.
+  Při pádu aplikace selže.
+  Nakonec spočítá, kolik snímků za 10 sekund nakreslí pohyblivé dekorace, i v úsporném režimu.
+- **Baseline profile** vygeneruje na emulátoru profil a porovná studený start s ním a bez něj.
+  Profil i časy vypíše do logu a uloží jako artefakt. Spouští se ručně nebo commitem
+  s `[profile]` v popisu.
   Spouští se ručně v záložce *Actions* nebo pushem commitu, který má v popisu `[emulator]`.
 
 ## Licence třetích stran

@@ -83,6 +83,20 @@ fun AsciiArtView(
     viewport: ArtViewportState = rememberArtViewportState(),
     interactive: Boolean = true,
     contentPadding: Dp = 12.dp,
+) = AsciiArtView({ art }, style, modifier, viewport, interactive, contentPadding)
+
+/**
+ * [AsciiArtView] for art that changes on its own, like an animation. [art] is called while
+ * drawing, so when it reads state, a new frame redraws the view without composing it again.
+ */
+@Composable
+fun AsciiArtView(
+    art: () -> AsciiArt?,
+    style: ArtStyle,
+    modifier: Modifier = Modifier,
+    viewport: ArtViewportState = rememberArtViewportState(),
+    interactive: Boolean = true,
+    contentPadding: Dp = 12.dp,
 ) {
     val renderer = rememberAsciiRenderer()
     val currentArt by rememberUpdatedState(art)
@@ -94,7 +108,7 @@ fun AsciiArtView(
     )
 
     fun clampOffset(offset: Offset, zoom: Float, size: Size, padding: Float): Offset {
-        val art = currentArt ?: return Offset.Zero
+        val art = currentArt() ?: return Offset.Zero
         val scale = fitScale(art, size, padding) * zoom
         val maxX = max(0f, (renderer.width(art) * scale - size.width) / 2f + padding)
         val maxY = max(0f, (renderer.height(art) * scale - size.height) / 2f + padding)
@@ -139,7 +153,7 @@ fun AsciiArtView(
     }
 
     Canvas(modifier.clipToBounds().then(gestures)) {
-        val current = art ?: return@Canvas
+        val current = art() ?: return@Canvas
         val padding = contentPadding.toPx()
         val scale = fitScale(current, size, padding) * viewport.zoom
         val left = (size.width - renderer.width(current) * scale) / 2f + viewport.offset.x

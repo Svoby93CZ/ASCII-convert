@@ -3,7 +3,8 @@ package cz.svoby93.asciistudio.engine
 /**
  * The result of a conversion: a grid of glyphs plus the average source colour of every cell.
  *
- * @property colors opaque `0xFFRRGGBB` colour per cell, row-major, used for colour rendering.
+ * @property colors average source colour per cell as `0xAARRGGBB`, row-major, used for colour
+ *   rendering; the alpha tells how much of the cell the picture covers.
  * @property cellAspect width / height of one cell the art was laid out for.
  */
 class AsciiArt(

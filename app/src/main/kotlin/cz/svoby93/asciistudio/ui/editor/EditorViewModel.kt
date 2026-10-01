@@ -3,6 +3,7 @@ package cz.svoby93.asciistudio.ui.editor
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.asImageBitmap
@@ -15,14 +16,21 @@ import cz.svoby93.asciistudio.data.ArtExporter
 import cz.svoby93.asciistudio.data.GalleryItem
 import cz.svoby93.asciistudio.data.GalleryRepository
 import cz.svoby93.asciistudio.data.ImageRepository
+import cz.svoby93.asciistudio.data.PresetRepository
 import cz.svoby93.asciistudio.data.SettingsRepository
 import cz.svoby93.asciistudio.data.SourceImage
 import cz.svoby93.asciistudio.data.StudioSettings
-import cz.svoby93.asciistudio.data.TextFormat
+import cz.svoby93.asciistudio.data.FileFormat
+import cz.svoby93.asciistudio.data.ImageFormat
+import cz.svoby93.asciistudio.data.UserPreset
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.engine.AsciiConverter
+import cz.svoby93.asciistudio.engine.AsciiExport
 import cz.svoby93.asciistudio.engine.AsciiOptions
+import cz.svoby93.asciistudio.engine.CachingConverter
+import cz.svoby93.asciistudio.engine.PixelImage
 import cz.svoby93.asciistudio.render.AsciiOptionsFactory
+import cz.svoby93.asciistudio.render.LookPreviewer
 import cz.svoby93.asciistudio.render.artStyle
 import cz.svoby93.asciistudio.ui.EditorRoute
 import kotlinx.coroutines.CancellationException
@@ -33,11 +41,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -50,13 +60,23 @@ sealed interface EditorEffect {
     data class Launch(val intent: Intent) : EditorEffect
 
     data class Message(@StringRes val text: Int) : EditorEffect
+
+    /** A message with an action that undoes what just happened, while the history is still at [version]. */
+    data class Undoable(@StringRes val text: Int, val version: Long) : EditorEffect
 }
+
+/**
+ * Whether the settings of the editor can be undone or redone. [version] counts the changes, undos
+ * and redos, so that an offer to undo one of them can tell when something else came after it.
+ */
+data class HistoryState(val canUndo: Boolean = false, val canRedo: Boolean = false, val version: Long = 0)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditorViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val images: ImageRepository,
     private val settingsRepository: SettingsRepository,
+    private val presetRepository: PresetRepository,
     private val optionsFactory: AsciiOptionsFactory,
     private val exporter: ArtExporter,
     private val gallery: GalleryRepository,
@@ -66,6 +86,26 @@ class EditorViewModel(
     private val source = MutableStateFlow<SourceImage?>(null)
     private val busy = MutableStateFlow(false)
     private val effectChannel = Channel<EditorEffect>(Channel.BUFFERED)
+
+    /** Keeps the samples of the photo, so that tone sliders do not read all of its pixels again. */
+    private val converter = CachingConverter()
+
+    private val history = SettingsHistory()
+    private val historyState = MutableStateFlow(HistoryState())
+
+    /** Undo and redo of the settings while this editor is open. */
+    val historyStates: StateFlow<HistoryState> = historyState.asStateFlow()
+
+    /** The presets the user saved; empty while they are being read. */
+    val userPresets: StateFlow<List<UserPreset>> = presetRepository.presets
+        .map { it.orEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
+
+    /** A small copy of the photo for the previews of the presets. */
+    val thumbnail: StateFlow<PixelImage?> = source
+        .map { image -> image?.pixels?.thumbnail(LookPreviewer.THUMBNAIL_SIZE) }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     /** The gallery item last saved or opened for this photo; it survives a process restart. */
     private val savedItemId: StateFlow<String?> = savedStateHandle.getStateFlow(KEY_SAVED_ITEM, null)
@@ -79,7 +119,7 @@ class EditorViewModel(
     ) { image, settings -> ConversionRequest(image, optionsFactory.create(settings)) }
         // Palette tweaks only change colours, so they do not trigger a new conversion.
         .distinctUntilChanged()
-        .mapLatest { request -> AsciiConverter.convert(request.image.pixels, request.options) }
+        .mapLatest { request -> converter.convert(request.image.pixels, request.options) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
@@ -141,13 +181,77 @@ class EditorViewModel(
         return image
     }
 
-    fun updateSettings(transform: (StudioSettings) -> StudioSettings) = settingsRepository.update(transform)
+    /** Changes the settings; changes in quick succession, like one drag of a slider, undo together. */
+    fun updateSettings(transform: (StudioSettings) -> StudioSettings) {
+        val before = settingsRepository.settings.value ?: return
+        val after = transform(before)
+        if (after == before) return
+        history.changed(before, SystemClock.uptimeMillis())
+        settingsRepository.update { after }
+        publishHistory()
+    }
 
-    fun resetSettings() = settingsRepository.update { StudioSettings(backdrop = it.backdrop) }
+    /** Brings back the default settings as a step of its own, which the message can undo. */
+    fun resetSettings() {
+        val before = settingsRepository.settings.value ?: return
+        val after = StudioSettings(backdrop = before.backdrop)
+        if (after == before) return
+        history.close()
+        history.changed(before, SystemClock.uptimeMillis())
+        history.close()
+        settingsRepository.update { after }
+        publishHistory()
+        send(EditorEffect.Undoable(R.string.message_settings_reset, historyState.value.version))
+    }
+
+    fun undo() = travel(history::undo)
+
+    fun redo() = travel(history::redo)
+
+    private fun travel(step: (StudioSettings) -> StudioSettings?) {
+        val current = settingsRepository.settings.value ?: return
+        step(current)?.let { target -> settingsRepository.update { target } }
+        // Even without a step the history may have dropped steps that changed nothing.
+        publishHistory()
+    }
+
+    private fun publishHistory() {
+        historyState.update { HistoryState(history.canUndo, history.canRedo, it.version + 1) }
+    }
+
+    fun savePreset(name: String) {
+        val settings = settingsRepository.settings.value ?: return
+        presetRepository.add(name, settings)
+    }
+
+    fun deletePreset(preset: UserPreset) = presetRepository.delete(preset.id)
 
     fun copyText() {
         val art = art.value ?: return
-        exporter.copyToClipboard(art)
+        exporter.copyToClipboard(art.toText())
+        confirmCopy()
+    }
+
+    /**
+     * Copies the art in a code block for chat apps. Narrower [columns] than the art has convert
+     * the photo again at that width in the same look, so that the lines fit a chat bubble.
+     */
+    fun copyForChat(columns: Int) {
+        val image = source.value ?: return
+        export { art, settings ->
+            val chatArt = if (columns < art.columns) {
+                withContext(Dispatchers.Default) {
+                    AsciiConverter.convert(image.pixels, optionsFactory.create(settings, columns))
+                }
+            } else {
+                art
+            }
+            exporter.copyToClipboard(AsciiExport.toChat(chatArt))
+            confirmCopy()
+        }
+    }
+
+    private fun confirmCopy() {
         // Android 13+ confirms clipboard copies itself.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) send(EditorEffect.Message(R.string.message_copied))
     }
@@ -157,14 +261,17 @@ class EditorViewModel(
         send(EditorEffect.Launch(exporter.shareTextIntent(art)))
     }
 
-    fun shareImage() = export { art, settings ->
-        send(EditorEffect.Launch(exporter.shareImageIntent(art, settings.artStyle())))
+    fun shareImage(format: ImageFormat) = export { art, settings ->
+        send(EditorEffect.Launch(exporter.shareImageIntent(art, settings.artStyle(), format)))
     }
 
-    fun saveToPictures() = export { art, settings ->
-        exporter.saveToPictures(art, settings.artStyle())
+    fun saveToPictures(format: ImageFormat) = export { art, settings ->
+        exporter.saveToPictures(art, settings.artStyle(), format)
         send(EditorEffect.Message(R.string.message_saved_pictures))
     }
+
+    /** The size in pixels of the picture of the current art in [format], or `null` without art. */
+    fun imageSize(format: ImageFormat): Pair<Int, Int>? = art.value?.let { exporter.imageSize(it, format) }
 
     /** Keeps the photo and the current settings in the gallery, unless they are there already. */
     fun saveToGallery() {
@@ -189,11 +296,10 @@ class EditorViewModel(
         }
     }
 
-    fun suggestedFileName(format: TextFormat): String = exporter.suggestedFileName(format)
+    fun suggestedFileName(format: FileFormat): String = exporter.suggestedFileName(format)
 
-    fun saveDocument(uri: Uri, format: TextFormat) = export { art, settings ->
-        val content = withContext(Dispatchers.Default) { exporter.text(art, settings.artStyle(), format) }
-        exporter.writeDocument(uri, content)
+    fun saveFile(uri: Uri, format: FileFormat) = export { art, settings ->
+        exporter.writeFile(uri, art, settings.artStyle(), format)
         send(EditorEffect.Message(R.string.message_saved_file))
     }
 

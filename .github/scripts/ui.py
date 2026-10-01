@@ -2,8 +2,11 @@
 """Helpers for the emulator smoke test.
 
   ui.py find <window.xml> <label>…  print "x y" of the first node whose text or description matches
+                                    ("desc:<label>" only descriptions, e.g. a slider below its label)
   ui.py summary <window.xml>        print the texts and descriptions visible on screen
   ui.py encode <screenshot.png>     print a small JPEG of the screenshot as base64 lines
+  ui.py video <video.mp4> <frame>   print what the video holds, save its middle frame; fails
+                                    for a video that cannot be played
   ui.py sample <out.jpg>            write a colourful test photo (used when downloading fails)
 """
 import base64
@@ -28,9 +31,12 @@ def find(path, *labels):
 
 
 def find_one(path, label):
+    attributes = ("text", "content-desc")
+    if label.startswith("desc:"):
+        label, attributes = label[len("desc:"):], ("content-desc",)
     exact = partial = None
     for node in nodes(path):
-        for attribute in ("text", "content-desc"):
+        for attribute in attributes:
             value = (node.get(attribute) or "").strip()
             if not value:
                 continue
@@ -72,6 +78,28 @@ def encode(path):
         print(data[start:start + 4000])
 
 
+def video(path, frame_path):
+    import av
+
+    try:
+        with av.open(path) as container:
+            stream = container.streams.video[0]
+            frames = [frame.to_image() for frame in container.decode(stream)]
+            seconds = container.duration / av.time_base if container.duration else 0.0
+            print(f"VIDEO {stream.codec_context.name} {stream.width}x{stream.height}, "
+                  f"{len(frames)} frames, {seconds:.1f} s")
+    except (av.FFmpegError, IndexError, OSError) as error:
+        print(f"VIDEO unreadable: {error}")
+        sys.exit(1)
+    if len(frames) < MIN_VIDEO_FRAMES:
+        sys.exit(1)
+    frames[len(frames) // 2].save(frame_path)
+
+
+# A few seconds of the live camera have many more frames than this, even on the emulator.
+MIN_VIDEO_FRAMES = 10
+
+
 def sample(path):
     from PIL import Image, ImageDraw
 
@@ -87,4 +115,4 @@ def sample(path):
 
 if __name__ == "__main__":
     command, *arguments = sys.argv[1:]
-    {"find": find, "summary": summary, "encode": encode, "sample": sample}[command](*arguments)
+    {"find": find, "summary": summary, "encode": encode, "video": video, "sample": sample}[command](*arguments)

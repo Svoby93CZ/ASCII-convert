@@ -1,5 +1,7 @@
 package cz.svoby93.asciistudio.engine
 
+import kotlin.math.roundToInt
+
 /**
  * A downsampled view of an image: luma, coverage (alpha) and average colour per grid cell.
  * All arrays are row-major with [width] × [height] entries.
@@ -11,7 +13,7 @@ internal class SampleGrid(
     val luma: FloatArray,
     /** Average opacity, 0..1. Transparent areas never receive ink. */
     val alpha: FloatArray,
-    /** Alpha-weighted average colour, opaque `0xFFRRGGBB`. */
+    /** Alpha-weighted average colour, with the average opacity in its alpha channel. */
     val colors: IntArray,
 ) {
     /** Averages blocks of [blockWidth] × [blockHeight] cells; the size must divide evenly. */
@@ -48,10 +50,8 @@ internal class SampleGrid(
                     val r = (sumR / sumA).toInt()
                     val g = (sumG / sumA).toInt()
                     val b = (sumB / sumA).toInt()
-                    outColors[o] = packOpaque(r, g, b)
+                    outColors[o] = pack((outAlpha[o] * 255f).roundToInt(), r, g, b)
                     outLuma[o] = luma(r, g, b)
-                } else {
-                    outColors[o] = OPAQUE_BLACK
                 }
             }
         }
@@ -124,10 +124,8 @@ internal object Sampler {
                     val r = (sumR[gx] / a).toInt()
                     val g = (sumG[gx] / a).toInt()
                     val b = (sumB[gx] / a).toInt()
-                    colors[index] = packOpaque(r, g, b)
+                    colors[index] = pack(((a + pixelCount / 2) / pixelCount).toInt(), r, g, b)
                     luma[index] = luma(r, g, b)
-                } else {
-                    colors[index] = OPAQUE_BLACK
                 }
             }
         }
@@ -144,6 +142,6 @@ internal object Sampler {
 
 internal const val OPAQUE_BLACK: Int = 0xFF000000.toInt()
 
-internal fun packOpaque(r: Int, g: Int, b: Int): Int = OPAQUE_BLACK or (r shl 16) or (g shl 8) or b
+internal fun pack(alpha: Int, r: Int, g: Int, b: Int): Int = (alpha shl 24) or (r shl 16) or (g shl 8) or b
 
 internal fun luma(r: Int, g: Int, b: Int): Float = (0.299f * r + 0.587f * g + 0.114f * b) / 255f

@@ -48,6 +48,7 @@ import cz.svoby93.asciistudio.ui.components.ArtViewportState
 import cz.svoby93.asciistudio.ui.components.AsciiArtView
 import cz.svoby93.asciistudio.ui.components.rememberArtViewportState
 import cz.svoby93.asciistudio.ui.studio.BlinkingDot
+import cz.svoby93.asciistudio.ui.studio.HistoryActions
 import cz.svoby93.asciistudio.ui.studio.RoundButton
 import cz.svoby93.asciistudio.ui.studio.SettingsTab
 import cz.svoby93.asciistudio.ui.studio.SettingsWindow
@@ -71,11 +72,13 @@ fun EditorContent(
     onCopy: () -> Unit,
     onReset: () -> Unit,
     onChange: SettingsChange,
+    presets: PresetShelf,
+    history: HistoryActions,
     modifier: Modifier = Modifier,
     viewport: ArtViewportState = rememberArtViewportState(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    var tab by rememberSaveable { mutableStateOf(SettingsTab.STYLE) }
+    var tab by rememberSaveable { mutableStateOf(SettingsTab.PRESETS) }
     var expanded by rememberSaveable { mutableStateOf(true) }
     // Without an image there is nothing to adjust.
     val settings = state.settings?.takeIf { state.load !is EditorLoadState.Failed }
@@ -113,11 +116,13 @@ fun EditorContent(
                             SettingsWindow(
                                 settings = settings,
                                 onChange = onChange,
+                                presets = presets,
                                 tab = tab,
                                 onTabChange = { tab = it },
                                 expanded = true,
                                 onExpandedChange = null,
                                 contentHeight = null,
+                                history = history,
                                 modifier = Modifier
                                     .weight(1f)
                                     .padding(start = 8.dp, end = 16.dp, bottom = 16.dp),
@@ -147,11 +152,13 @@ fun EditorContent(
                         SettingsWindow(
                             settings = settings,
                             onChange = onChange,
+                            presets = presets,
                             tab = tab,
                             onTabChange = { tab = it },
                             expanded = expanded,
                             onExpandedChange = { expanded = it },
                             contentHeight = (height * 0.3f).coerceIn(170.dp, 300.dp),
+                            history = history,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),

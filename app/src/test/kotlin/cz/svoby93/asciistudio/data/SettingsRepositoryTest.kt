@@ -48,6 +48,7 @@ class SettingsRepositoryTest {
             dithering = Dithering.ATKINSON,
             edgeMode = EdgeMode.MIXED,
             colorMode = ColorMode.PHOTO,
+            colorTiles = true,
             palette = ArtPalette.PAPER,
             backdrop = Backdrop.RAIN,
         )

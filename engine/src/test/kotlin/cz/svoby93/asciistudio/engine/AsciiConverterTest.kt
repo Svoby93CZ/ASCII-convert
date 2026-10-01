@@ -80,6 +80,17 @@ class AsciiConverterTest {
     }
 
     @Test
+    fun `cell colours tell how much of the cell the picture covers`() {
+        val image = TestImages.of(40, 40) { x, _ -> if (x < 20) TRANSPARENT else WHITE }
+
+        for (glyphs in listOf(GlyphSet.Ramp(CharRamps.STANDARD), GlyphSet.Braille)) {
+            val art = AsciiConverter.convert(image, standard.copy(columns = 2, glyphs = glyphs))
+            assertEquals(0, art.colorAt(0, 0) ushr 24, "Transparent half with $glyphs")
+            assertEquals(WHITE, art.colorAt(1, 0), "Opaque half with $glyphs")
+        }
+    }
+
+    @Test
     fun `floyd steinberg keeps the average tone of mid grey`() {
         val ramp = CharRamp.uniform(" #")
         val options = standard.copy(
