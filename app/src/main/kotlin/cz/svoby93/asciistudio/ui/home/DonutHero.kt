@@ -52,11 +52,12 @@ fun DonutHero(onSignature: () -> Unit, modifier: Modifier = Modifier) {
     val haptics = LocalHapticFeedback.current
     val currentOnSignature by rememberUpdatedState(onSignature)
 
-    // Without moving decorations the name shows as a still frame for a while.
+    // The show ends with its last turn; without moving decorations, the still name stays a while.
+    // Ending it for good keeps a still frame from bringing it back later, e.g. in battery saver.
     val showStart = taps.showStart
-    if (showStart != null && !animate) {
-        LaunchedEffect(showStart) {
-            delay(STILL_MILLIS)
+    if (showStart != null) {
+        LaunchedEffect(showStart, animate) {
+            delay(if (animate) SHOW_MILLIS else STILL_MILLIS)
             taps.endShow()
         }
     }
@@ -185,7 +186,8 @@ private const val TAP_GAP_MILLIS = 600L
 private const val KICK_SECONDS = 0.9f
 private const val KICK_DECAY_SECONDS = 0.35f
 
-/** How long the name stands still when decorations may not move. */
+/** How long the name shows: turning, or standing still when decorations may not move. */
+private const val SHOW_MILLIS = (SignatureShow.DURATION * 1000).toLong()
 private const val STILL_MILLIS = 6_000L
 private const val STILL_SHOW = -1f
 private const val DISSOLVE_SEED = 5
