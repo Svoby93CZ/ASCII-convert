@@ -312,7 +312,7 @@ alive presets
 echo "### Hidden look"
 # The letters of the author's nickname as custom characters unlock a look drawn with them.
 # The character sets scroll sideways, and Custom is the last of them.
-tap "STYLE" && drag_left "Standard" && tap "Custom" && tap "Custom characters" && clear_field &&
+tap "STYLE" && drag_left "Standard" && tap "Custom" && tap "Your characters" && clear_field &&
   adb shell input text svoby
 screen 04-custom-svoby 3
 hide_keyboard
