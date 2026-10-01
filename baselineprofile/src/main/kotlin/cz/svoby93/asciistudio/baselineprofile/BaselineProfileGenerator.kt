@@ -30,7 +30,7 @@ class BaselineProfileGenerator {
         Thread.sleep(SHORT_PAUSE_MILLIS)
     }
 
-    /** The live camera, a photo taken with it and the editor with its main settings. */
+    /** The live camera, a photo taken with it and the editor with its presets and main settings. */
     @Test
     fun journey() = rule.collect(packageName = PACKAGE_NAME) {
         pressHome()
@@ -47,6 +47,10 @@ class BaselineProfileGenerator {
         Thread.sleep(LONG_PAUSE_MILLIS)
 
         // Every step ends where it started, because the settings stay for the next round.
+        // The editor opens on the presets, whose tiles show the photo in every look.
+        tap("Newspaper", "Noviny")
+        Thread.sleep(SHORT_PAUSE_MILLIS)
+        tap("Classic", "Klasika")
         tap("Colors", "Barvy")
         tap("Photo colors", "Barvy fotky")
         Thread.sleep(SHORT_PAUSE_MILLIS)

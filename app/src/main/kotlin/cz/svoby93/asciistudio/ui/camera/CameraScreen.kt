@@ -52,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.svoby93.asciistudio.LocalAppContainer
 import cz.svoby93.asciistudio.R
+import cz.svoby93.asciistudio.ui.editor.PresetShelf
 import cz.svoby93.asciistudio.ui.studio.LocalStudioColors
 import cz.svoby93.asciistudio.ui.studio.TerminalFrame
 import cz.svoby93.asciistudio.ui.studio.findActivity
@@ -101,12 +102,19 @@ fun CameraScreen(onBack: () -> Unit, onCaptured: () -> Unit) {
 private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
     val container = LocalAppContainer.current
     val viewModel: CameraViewModel = viewModel {
-        CameraViewModel(container.imageRepository, container.settingsRepository, container.optionsFactory)
+        CameraViewModel(
+            container.imageRepository,
+            container.settingsRepository,
+            container.presetRepository,
+            container.optionsFactory,
+        )
     }
     val art by viewModel.art.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val lensFacing by viewModel.lensFacing.collectAsStateWithLifecycle()
     val capturing by viewModel.isCapturing.collectAsStateWithLifecycle()
+    val userPresets by viewModel.userPresets.collectAsStateWithLifecycle()
+    val thumbnail by viewModel.thumbnail.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resources = LocalResources.current
     val view = LocalView.current
@@ -161,6 +169,12 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
         onCapture = viewModel::capture,
         onSwitchCamera = viewModel::switchCamera,
         onChange = viewModel::updateSettings,
+        presets = PresetShelf(
+            userPresets = userPresets,
+            thumbnail = thumbnail,
+            onSave = viewModel::savePreset,
+            onDelete = viewModel::deletePreset,
+        ),
         snackbarHostState = snackbarHostState,
     )
 }

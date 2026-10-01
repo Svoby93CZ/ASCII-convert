@@ -3,6 +3,7 @@ package cz.svoby93.asciistudio.ui.editor
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.asImageBitmap
@@ -15,14 +16,18 @@ import cz.svoby93.asciistudio.data.ArtExporter
 import cz.svoby93.asciistudio.data.GalleryItem
 import cz.svoby93.asciistudio.data.GalleryRepository
 import cz.svoby93.asciistudio.data.ImageRepository
+import cz.svoby93.asciistudio.data.PresetRepository
 import cz.svoby93.asciistudio.data.SettingsRepository
 import cz.svoby93.asciistudio.data.SourceImage
 import cz.svoby93.asciistudio.data.StudioSettings
 import cz.svoby93.asciistudio.data.TextFormat
+import cz.svoby93.asciistudio.data.UserPreset
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.engine.AsciiOptions
 import cz.svoby93.asciistudio.engine.CachingConverter
+import cz.svoby93.asciistudio.engine.PixelImage
 import cz.svoby93.asciistudio.render.AsciiOptionsFactory
+import cz.svoby93.asciistudio.render.LookPreviewer
 import cz.svoby93.asciistudio.render.artStyle
 import cz.svoby93.asciistudio.ui.EditorRoute
 import kotlinx.coroutines.CancellationException
@@ -33,11 +38,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -50,13 +57,20 @@ sealed interface EditorEffect {
     data class Launch(val intent: Intent) : EditorEffect
 
     data class Message(@StringRes val text: Int) : EditorEffect
+
+    /** A message with an action that undoes what just happened. */
+    data class Undoable(@StringRes val text: Int) : EditorEffect
 }
+
+/** Whether the settings of the editor can be undone or redone. */
+data class HistoryState(val canUndo: Boolean = false, val canRedo: Boolean = false)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditorViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val images: ImageRepository,
     private val settingsRepository: SettingsRepository,
+    private val presetRepository: PresetRepository,
     private val optionsFactory: AsciiOptionsFactory,
     private val exporter: ArtExporter,
     private val gallery: GalleryRepository,
@@ -69,6 +83,23 @@ class EditorViewModel(
 
     /** Keeps the samples of the photo, so that tone sliders do not read all of its pixels again. */
     private val converter = CachingConverter()
+
+    private val history = SettingsHistory()
+    private val historyState = MutableStateFlow(HistoryState())
+
+    /** Undo and redo of the settings while this editor is open. */
+    val historyStates: StateFlow<HistoryState> = historyState.asStateFlow()
+
+    /** The presets the user saved; empty while they are being read. */
+    val userPresets: StateFlow<List<UserPreset>> = presetRepository.presets
+        .map { it.orEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
+
+    /** A small copy of the photo for the previews of the presets. */
+    val thumbnail: StateFlow<PixelImage?> = source
+        .map { image -> image?.pixels?.thumbnail(LookPreviewer.THUMBNAIL_SIZE) }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     /** The gallery item last saved or opened for this photo; it survives a process restart. */
     private val savedItemId: StateFlow<String?> = savedStateHandle.getStateFlow(KEY_SAVED_ITEM, null)
@@ -144,9 +175,50 @@ class EditorViewModel(
         return image
     }
 
-    fun updateSettings(transform: (StudioSettings) -> StudioSettings) = settingsRepository.update(transform)
+    /** Changes the settings; changes in quick succession, like one drag of a slider, undo together. */
+    fun updateSettings(transform: (StudioSettings) -> StudioSettings) {
+        val before = settingsRepository.settings.value ?: return
+        val after = transform(before)
+        if (after == before) return
+        history.changed(before, SystemClock.uptimeMillis())
+        settingsRepository.update { after }
+        publishHistory()
+    }
 
-    fun resetSettings() = settingsRepository.update { StudioSettings(backdrop = it.backdrop) }
+    /** Brings back the default settings as a step of its own, which the message can undo. */
+    fun resetSettings() {
+        val before = settingsRepository.settings.value ?: return
+        val after = StudioSettings(backdrop = before.backdrop)
+        if (after == before) return
+        history.close()
+        history.changed(before, SystemClock.uptimeMillis())
+        history.close()
+        settingsRepository.update { after }
+        publishHistory()
+        send(EditorEffect.Undoable(R.string.message_settings_reset))
+    }
+
+    fun undo() = travel(history::undo)
+
+    fun redo() = travel(history::redo)
+
+    private fun travel(step: (StudioSettings) -> StudioSettings?) {
+        val current = settingsRepository.settings.value ?: return
+        val target = step(current) ?: return
+        settingsRepository.update { target }
+        publishHistory()
+    }
+
+    private fun publishHistory() {
+        historyState.value = HistoryState(history.canUndo, history.canRedo)
+    }
+
+    fun savePreset(name: String) {
+        val settings = settingsRepository.settings.value ?: return
+        presetRepository.add(name, settings)
+    }
+
+    fun deletePreset(preset: UserPreset) = presetRepository.delete(preset.id)
 
     fun copyText() {
         val art = art.value ?: return

@@ -2,6 +2,7 @@ package cz.svoby93.asciistudio.ui.camera
 
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.os.SystemClock
 import android.util.Log
 import android.util.Size
 import androidx.camera.core.CameraSelector
@@ -15,11 +16,15 @@ import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.svoby93.asciistudio.data.ImageRepository
+import cz.svoby93.asciistudio.data.PresetRepository
 import cz.svoby93.asciistudio.data.SettingsRepository
 import cz.svoby93.asciistudio.data.StudioSettings
+import cz.svoby93.asciistudio.data.UserPreset
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.engine.LiveConverter
+import cz.svoby93.asciistudio.engine.PixelImage
 import cz.svoby93.asciistudio.render.AsciiOptionsFactory
+import cz.svoby93.asciistudio.render.LookPreviewer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.max
@@ -27,9 +32,12 @@ import kotlin.math.min
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -45,10 +53,22 @@ sealed interface CameraEvent {
 class CameraViewModel(
     private val images: ImageRepository,
     private val settingsRepository: SettingsRepository,
+    private val presetRepository: PresetRepository,
     private val optionsFactory: AsciiOptionsFactory,
 ) : ViewModel() {
 
     val settings: StateFlow<StudioSettings?> = settingsRepository.settings
+
+    /** The presets the user saved; empty while they are being read. */
+    val userPresets: StateFlow<List<UserPreset>> = presetRepository.presets
+        .map { it.orEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
+
+    private val liveThumbnail = MutableStateFlow<PixelImage?>(null)
+
+    /** A small copy of the live picture for the previews of the presets, renewed about once a second. */
+    val thumbnail: StateFlow<PixelImage?> = liveThumbnail.asStateFlow()
+    private var thumbnailTime = 0L
 
     private val liveArt = MutableStateFlow<AsciiArt?>(null)
     val art: StateFlow<AsciiArt?> = liveArt.asStateFlow()
@@ -134,8 +154,21 @@ class CameraViewModel(
                 maxSize = columns * SAMPLES_PER_COLUMN,
             )
             liveArt.value = converter.convert(picture, optionsFactory.create(settings, columns))
+            val now = SystemClock.uptimeMillis()
+            if (now - thumbnailTime >= THUMBNAIL_INTERVAL_MS) {
+                thumbnailTime = now
+                // A copy: the reader reuses the pixels of the picture for the next frame.
+                liveThumbnail.value = picture.thumbnail(LookPreviewer.THUMBNAIL_SIZE)
+            }
         }
     }
+
+    fun savePreset(name: String) {
+        val current = settingsRepository.settings.value ?: return
+        presetRepository.add(name, current)
+    }
+
+    fun deletePreset(preset: UserPreset) = presetRepository.delete(preset.id)
 
     /** Rotates the photo upright, mirrors selfies and shrinks it to [maxSize] pixels. */
     private fun upright(bitmap: Bitmap, rotationDegrees: Int, mirror: Boolean, maxSize: Int): Bitmap {
@@ -159,6 +192,8 @@ class CameraViewModel(
         /** Source pixels per text column for the live preview: enough for good averaging. */
         const val SAMPLES_PER_COLUMN = 4
         const val MAX_PHOTO_SIZE = 1600
+        const val THUMBNAIL_INTERVAL_MS = 1_000L
+        const val STOP_TIMEOUT_MS = 5_000L
 
         fun resolutionSelector(size: Size, fallbackRule: Int): ResolutionSelector = ResolutionSelector.Builder()
             .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)

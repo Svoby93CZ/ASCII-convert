@@ -33,12 +33,16 @@
     <string name="action_copy">Copy text</string>
     <string name="action_more">More options</string>
     <string name="action_reset">Reset settings</string>
+    <string name="action_undo">Undo</string>
+    <string name="action_redo">Redo</string>
+    <string name="message_settings_reset">Settings reset</string>
     <string name="action_fit">Fit to screen</string>
     <string name="action_retry">Back to start</string>
     <string name="action_save_to_gallery">Save to collection</string>
     <string name="action_saved_in_gallery">Saved in the collection</string>
     <string name="loading_image">Opening image…</string>
 
+    <string name="tab_presets">Presets</string>
     <string name="tab_style">Style</string>
     <string name="tab_tone">Tone</string>
     <string name="tab_colors">Colors</string>
@@ -46,6 +50,28 @@
     <string name="settings_title">Settings</string>
     <string name="settings_show">Show settings</string>
     <string name="settings_hide">Hide settings</string>
+
+    <string name="preset_classic">Classic</string>
+    <string name="preset_matrix">Matrix</string>
+    <string name="preset_newspaper">Newspaper</string>
+    <string name="preset_game_boy">Game Boy</string>
+    <string name="preset_blueprint">Blueprint</string>
+    <string name="preset_neon">Neon</string>
+    <string name="preset_mosaic">Mosaic</string>
+    <string name="preset_ink">Ink</string>
+    <string name="label_my_presets">My presets</string>
+    <string name="preset_new">New preset</string>
+    <string name="presets_supporting">A preset sets the characters, tones and colors at once; the width and the screen background stay. Hold a preset of your own to delete it.</string>
+    <string name="preset_default_name">My preset %1$d</string>
+    <string name="preset_save_title">Save as a preset</string>
+    <string name="preset_save_text">Keeps the characters, tones and colors of the art under a name of your own.</string>
+    <string name="preset_name">Name</string>
+    <string name="preset_save">Save</string>
+    <string name="preset_delete">Delete</string>
+    <string name="preset_delete_title">Delete the preset?</string>
+    <string name="preset_delete_text">“%1$s” will be removed from your presets. The art keeps its look.</string>
+    <string name="slider_reset">Reset to default</string>
+    <string name="slider_reset_hint">Double-tap a slider to bring back its default value.</string>
 
     <string name="label_charset">Characters</string>
     <string name="charset_standard">Standard</string>

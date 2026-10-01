@@ -60,6 +60,7 @@ import cz.svoby93.asciistudio.data.StudioSettings
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.render.artStyle
 import cz.svoby93.asciistudio.ui.components.AsciiArtView
+import cz.svoby93.asciistudio.ui.editor.PresetShelf
 import cz.svoby93.asciistudio.ui.editor.SettingsChange
 import cz.svoby93.asciistudio.ui.studio.BlinkingDot
 import cz.svoby93.asciistudio.ui.studio.LocalStudioColors
@@ -85,10 +86,11 @@ fun CameraContent(
     onCapture: () -> Unit,
     onSwitchCamera: () -> Unit,
     onChange: SettingsChange,
+    presets: PresetShelf,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-    var tab by rememberSaveable { mutableStateOf(SettingsTab.STYLE) }
+    var tab by rememberSaveable { mutableStateOf(SettingsTab.PRESETS) }
     var expanded by rememberSaveable { mutableStateOf(true) }
     val onPhotoColorsChange = { photo: Boolean ->
         onChange { it.copy(colorMode = if (photo) ColorMode.PHOTO else ColorMode.PALETTE) }
@@ -123,6 +125,7 @@ fun CameraContent(
                         SettingsWindow(
                             settings = settings,
                             onChange = onChange,
+                            presets = presets,
                             tab = tab,
                             onTabChange = { tab = it },
                             expanded = true,
@@ -158,6 +161,7 @@ fun CameraContent(
                     SettingsWindow(
                         settings = settings,
                         onChange = onChange,
+                        presets = presets,
                         tab = tab,
                         onTabChange = { tab = it },
                         expanded = expanded,

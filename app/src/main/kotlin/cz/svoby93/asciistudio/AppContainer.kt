@@ -7,11 +7,13 @@ import androidx.core.content.res.ResourcesCompat
 import cz.svoby93.asciistudio.data.ArtExporter
 import cz.svoby93.asciistudio.data.GalleryRepository
 import cz.svoby93.asciistudio.data.ImageRepository
+import cz.svoby93.asciistudio.data.PresetRepository
 import cz.svoby93.asciistudio.data.SettingsRepository
 import cz.svoby93.asciistudio.data.settingsDataStore
 import cz.svoby93.asciistudio.render.AsciiOptionsFactory
 import cz.svoby93.asciistudio.render.AsciiRenderer
 import cz.svoby93.asciistudio.render.GlyphMeasurer
+import cz.svoby93.asciistudio.render.LookPreviewer
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +39,13 @@ class AppContainer(context: Context) {
     val settingsRepository: SettingsRepository by lazy {
         SettingsRepository(appContext.settingsDataStore, applicationScope)
     }
+
+    /** The presets the user saved, stored next to the settings. */
+    val presetRepository: PresetRepository by lazy {
+        PresetRepository(appContext.settingsDataStore, applicationScope)
+    }
+
+    val lookPreviewer: LookPreviewer by lazy { LookPreviewer(optionsFactory) }
 
     val imageRepository: ImageRepository by lazy { ImageRepository(appContext) }
 

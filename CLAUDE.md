@@ -25,7 +25,9 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
   only for pushes whose commit message contains `[emulator]`, or manually. It drives the app by
   tapping visible texts and content descriptions (`ui.py find`: exact match first, then
   case-insensitive substring), so renaming UI labels can break it. Update the script together
-  with UI changes, and tag such commits `[emulator]`. Every step prints a base64 JPEG between
+  with UI changes, and tag such commits `[emulator]`. The editor and the camera open on the
+  presets tab; tabs are tapped by their capitalised labels (`TONE`), because other texts mention
+  tones and colors. Every step prints a base64 JPEG between
   `===== BEGIN IMAGE <name> =====` and `===== END IMAGE <name> =====` in the job log. Near the
   end it turns animations on and prints `===== FRAMES <name>: ... =====` lines: the frames the app
   draws and the CPU time it takes in 10 seconds on screens with moving decorations, also in
@@ -127,6 +129,12 @@ profile when the app does not come from Google Play.
   falls back to its default there. `backdrop` (the screen background) is stored under its old
   key `camera_background`. It decorates the app and is not part of the art, so opening a gallery
   item or resetting the settings keeps it (`sameArtAs` ignores it too).
+- **Presets:** a look is a whole `StudioSettings`; `withLookOf` applies it but keeps the width,
+  the background and custom characters, and `hasLookOf` marks the matching tile. Built-in looks
+  are `StylePreset`; the user's are `UserPreset`s in `PresetRepository` (JSON under
+  `user_presets` in the settings DataStore). `PresetControls` is the first tab of
+  `SettingsWindow`. Its tiles preview the picture in every look (`LookPreviewer`, 28 columns of a
+  `PixelImage.thumbnail`): the editor's photo, or in the camera the live frame once a second.
 - **Images:** `ImageRepository` keeps the working image, downscaled to 1600 px, in
   `noBackupFilesDir`. `EditorViewModel` restores it after process death through a
   `SavedStateHandle` flag.
@@ -141,6 +149,10 @@ profile when the app does not come from Google Play.
 - **Editor:** `EditorViewModel` combines the image and the settings into `AsciiOptions`, then
   converts through a `CachingConverter` with `mapLatest` on `Dispatchers.Default`, so tone
   changes do not sample the photo again. Palette-only changes do not reconvert.
+  `SettingsHistory` gives the editor undo and redo: changes within 600 ms of each other are one
+  step (one drag of a slider), a reset is a step of its own whose snackbar offers Undo, and the
+  buttons `[↩] [↪]` sit in the border of the settings window. A double tap on a slider, or its
+  accessibility action, brings back its default.
   `EditorControls` holds the Style, Tone and Colors controls; `SettingsWindow` shows them in the
   editor and in the camera.
 - **Rendering:** `AsciiRenderer` draws on an Android `Canvas`, one `drawText` per row.

@@ -6,7 +6,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +29,7 @@ import cz.svoby93.asciistudio.LocalAppContainer
 import cz.svoby93.asciistudio.R
 import cz.svoby93.asciistudio.data.TextFormat
 import cz.svoby93.asciistudio.ui.components.rememberArtViewportState
+import cz.svoby93.asciistudio.ui.studio.HistoryActions
 import kotlinx.coroutines.launch
 
 @Composable
@@ -37,12 +40,16 @@ fun EditorScreen(onBack: () -> Unit) {
             savedStateHandle = createSavedStateHandle(),
             images = container.imageRepository,
             settingsRepository = container.settingsRepository,
+            presetRepository = container.presetRepository,
             optionsFactory = container.optionsFactory,
             exporter = container.exporter,
             gallery = container.galleryRepository,
         )
     }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val history by viewModel.historyStates.collectAsStateWithLifecycle()
+    val userPresets by viewModel.userPresets.collectAsStateWithLifecycle()
+    val thumbnail by viewModel.thumbnail.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -59,6 +66,14 @@ fun EditorScreen(onBack: () -> Unit) {
                         launch { snackbarHostState.showSnackbar(resources.getString(R.string.message_export_failed)) }
                     }
                     is EditorEffect.Message -> launch { snackbarHostState.showSnackbar(resources.getString(effect.text)) }
+                    is EditorEffect.Undoable -> launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = resources.getString(effect.text),
+                            actionLabel = resources.getString(R.string.action_undo),
+                            duration = SnackbarDuration.Long,
+                        )
+                        if (result == SnackbarResult.ActionPerformed) viewModel.undo()
+                    }
                 }
             }
         }
@@ -87,6 +102,18 @@ fun EditorScreen(onBack: () -> Unit) {
         onCopy = viewModel::copyText,
         onReset = viewModel::resetSettings,
         onChange = viewModel::updateSettings,
+        presets = PresetShelf(
+            userPresets = userPresets,
+            thumbnail = thumbnail,
+            onSave = viewModel::savePreset,
+            onDelete = viewModel::deletePreset,
+        ),
+        history = HistoryActions(
+            canUndo = history.canUndo,
+            canRedo = history.canRedo,
+            onUndo = viewModel::undo,
+            onRedo = viewModel::redo,
+        ),
         viewport = rememberArtViewportState(),
         snackbarHostState = snackbarHostState,
     )

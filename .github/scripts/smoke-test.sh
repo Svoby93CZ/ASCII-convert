@@ -92,6 +92,20 @@ drag_up() { # label: drags the scrollable content under the label up, to show wh
   sleep 1
 }
 
+hold() { # label: keeps a finger on the first element with the label for a second
+  dump current
+  local target
+  target=$(python3 "$UI" find "$OUT/current.xml" "$1")
+  if [ -z "$target" ]; then
+    echo "!!! could not find '$1' on screen"
+    failures=$((failures + 1))
+    return 1
+  fi
+  set -- $target
+  adb shell input swipe "$1" "$2" "$1" "$2" 1000
+  sleep 1
+}
+
 app_log() {
   echo "----- app log -----"
   adb logcat -d -s AsciiStudio:V | tail -n 40
@@ -199,12 +213,27 @@ screen 04-editor 8
 alive editor
 app_log
 
+echo "### Presets, undo and redo"
+# The editor opens on the presets, whose tiles show the photo in every look.
+tap "Newspaper" && screen 04-preset-newspaper 3
+tap "Undo" && screen 04-undo 2
+tap "Redo" && screen 04-redo 2
+tap "New preset" && screen 04-preset-new 1 && tap "Save" && screen 04-preset-saved 2
+hold "My preset 1" && screen 04-preset-delete 1 && tap "Delete" && screen 04-preset-deleted 2
+tap "More options" && tap "Reset settings" && screen 04-reset 1
+# The message offers to undo the reset; the button in the window border does the same.
+tap "Undo" && screen 04-reset-undone 2
+# Back to the default look, so that the later screens stay comparable between runs.
+tap "Classic"
+alive presets
+
 echo "### Editor controls"
-tap "Tone" && screen 05-tone 3
-tap "Colors" && tap "Photo colors" && screen 06-photo-colors 3
+# Exact labels: the tabs are in capitals, and other texts mention tones and colors.
+tap "TONE" && screen 05-tone 3
+tap "COLORS" && tap "Photo colors" && screen 06-photo-colors 3
 # Color tiles stay on, so the later steps draw them too: Braille, the saved preview and the camera.
 drag_up "Glyph color" && tap "Color tiles" && screen 06-color-tiles 3
-tap "Style" && tap "Braille" && screen 07-braille 3
+tap "STYLE" && tap "Braille" && screen 07-braille 3
 tap "Detailed" && tap "Mixed" && screen 08-outlines 3
 tap "Show original" && screen 09-original 3
 tap "Show original"

@@ -36,6 +36,12 @@ v telefonu, bez internetu a bez odesílání dat.
   znaky nepřepínají, pohyb kamery se přitom ukáže hned.
 - **Editor s okamžitým náhledem** – přibližování dvěma prsty, posun, dvojité klepnutí,
   porovnání s originálem. Nastavení je v okně se záložkami stejně jako v kameře.
+- **Předvolby** – osm vzhledů na jedno klepnutí: Klasika, Matrix, Noviny, Game Boy, Modrotisk,
+  Neon, Mozaika a Tuš. Každá dlaždice ukazuje vaši fotku v daném vzhledu, v kameře živý obraz.
+  Vlastní vzhled uložíte mezi „Moje předvolby“. Předvolba mění znaky, tóny a barvy, šířka
+  a pozadí zůstanou.
+- **Zpět a Znovu** v editoru. Obnovení výchozího nastavení jde vrátit a dvojité klepnutí na
+  posuvník vrátí jen jeho hodnotu.
 - **Sbírka** – ASCII arty uložené z editoru zůstávají v aplikaci i s fotkou a nastavením, takže
   je jde kdykoli znovu otevřít, upravit nebo smazat.
 - **Vzhled terminálu v celé aplikaci** – úvodní obrazovka, editor, sbírka i kamera mají okna
@@ -233,12 +239,13 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 
 - `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, barvy z fotky,
   export, opakované použití vzorků, klidný živý obraz).
-- `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore, sbírka
-  na disku, kontrast textů ve všech paletách a čtení snímků z kamery.
+- `./gradlew :app:testDebugUnitTest` – ukládání nastavení a předvoleb přes skutečný DataStore,
+  sbírka na disku, kontrast textů ve všech paletách, čtení snímků z kamery a historie Zpět/Znovu.
 - **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug
   i release APK. S uloženým klíčem pro nahrávání připraví i bundle pro Google Play.
 - **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,
-  export, sbírka, otočení na šířku, živá kamera, čeština a tmavý režim. Při pádu aplikace selže.
+  předvolby, Zpět a Znovu, export, sbírka, otočení na šířku, živá kamera, čeština a tmavý režim.
+  Při pádu aplikace selže.
   Nakonec spočítá, kolik snímků za 10 sekund nakreslí pohyblivé dekorace, i v úsporném režimu.
 - **Baseline profile** vygeneruje na emulátoru profil a porovná studený start s ním a bez něj.
   Profil i časy vypíše do logu a uloží jako artefakt. Spouští se ručně nebo commitem

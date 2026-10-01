@@ -30,12 +30,16 @@
     <string name="action_copy">Kopírovat text</string>
     <string name="action_more">Další možnosti</string>
     <string name="action_reset">Obnovit výchozí nastavení</string>
+    <string name="action_undo">Zpět</string>
+    <string name="action_redo">Znovu</string>
+    <string name="message_settings_reset">Nastavení obnoveno</string>
     <string name="action_fit">Přizpůsobit obrazovce</string>
     <string name="action_retry">Zpět na začátek</string>
     <string name="action_save_to_gallery">Uložit do sbírky</string>
     <string name="action_saved_in_gallery">Uloženo ve sbírce</string>
     <string name="loading_image">Otevírám obrázek…</string>
 
+    <string name="tab_presets">Předvolby</string>
     <string name="tab_style">Styl</string>
     <string name="tab_tone">Tón</string>
     <string name="tab_colors">Barvy</string>
@@ -43,6 +47,28 @@
     <string name="settings_title">Nastavení</string>
     <string name="settings_show">Zobrazit nastavení</string>
     <string name="settings_hide">Skrýt nastavení</string>
+
+    <string name="preset_classic">Klasika</string>
+    <string name="preset_matrix">Matrix</string>
+    <string name="preset_newspaper">Noviny</string>
+    <string name="preset_game_boy">Game Boy</string>
+    <string name="preset_blueprint">Modrotisk</string>
+    <string name="preset_neon">Neon</string>
+    <string name="preset_mosaic">Mozaika</string>
+    <string name="preset_ink">Tuš</string>
+    <string name="label_my_presets">Moje předvolby</string>
+    <string name="preset_new">Nová předvolba</string>
+    <string name="presets_supporting">Předvolba nastaví najednou znaky, tóny i barvy; šířka a pozadí obrazovky zůstanou. Vlastní předvolbu smažete podržením.</string>
+    <string name="preset_default_name">Moje předvolba %1$d</string>
+    <string name="preset_save_title">Uložit jako předvolbu</string>
+    <string name="preset_save_text">Uloží znaky, tóny a barvy artu pod vlastním názvem.</string>
+    <string name="preset_name">Název</string>
+    <string name="preset_save">Uložit</string>
+    <string name="preset_delete">Smazat</string>
+    <string name="preset_delete_title">Smazat předvolbu?</string>
+    <string name="preset_delete_text">Předvolba „%1$s“ zmizí z vašich předvoleb. Vzhled artu se nezmění.</string>
+    <string name="slider_reset">Vrátit výchozí hodnotu</string>
+    <string name="slider_reset_hint">Dvojité klepnutí na posuvník vrátí jeho výchozí hodnotu.</string>
 
     <string name="label_charset">Znaky</string>
     <string name="charset_standard">Standardní</string>
