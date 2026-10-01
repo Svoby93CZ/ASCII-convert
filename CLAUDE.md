@@ -28,12 +28,14 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
   the label "Contrast"), so renaming UI labels can break it. Update the script together with UI
   changes, and tag such commits `[emulator]`. The editor and the camera open on the
   presets tab; tabs are tapped by their capitalised labels (`TONE`), because other texts mention
-  tones and colors. Every step prints a base64 JPEG between
-  `===== BEGIN IMAGE <name> =====` and `===== END IMAGE <name> =====` in the job log. Near the
-  end it turns animations on and prints `===== FRAMES <name>: ... =====` lines: the frames the app
-  draws and the CPU time it takes in 10 seconds on screens with moving decorations, also in
-  battery saver. It measures on a 360 × 800 screen, because the emulator renders in software and
-  falls to about 10 frames a second at full size.
+  tones and colors. The export steps check the size of a saved story picture, save PDF, SVG and
+  HTML through the system file picker, and print those files gzipped and base64 encoded between
+  `===== BEGIN FILE <name> =====` and `===== END FILE <name> =====`. Every step prints a base64
+  JPEG between `===== BEGIN IMAGE <name> =====` and `===== END IMAGE <name> =====` in the job log.
+  Near the end it turns animations on and prints `===== FRAMES <name>: ... =====` lines: the
+  frames the app draws and the CPU time it takes in 10 seconds on screens with moving decorations,
+  also in battery saver. It measures on a 360 × 800 screen, because the emulator renders in
+  software and falls to about 10 frames a second at full size.
 - **Baseline profile** (`.github/workflows/baseline-profile.yml`, `.github/scripts/baseline-profile.sh`)
   runs for pushes whose commit message contains `[profile]`, or manually. On an emulator with a
   360 × 800 screen it runs `:app:generateBaselineProfile`, then `StartupBenchmarks` (cold starts
@@ -112,7 +114,15 @@ profile when the app does not come from Google Play.
   carries the brightness, so a glyph takes only the hue and saturation of its cell, at a WCAG
   contrast on the paper (4.5:1 on dark paper, 7:1 on light paper). Tiles mix 30 % of the cell
   colour into the paper. The renderer and `AsciiExport` (which takes plain colour arrays) share it,
-  so the screen, PNG, HTML and ANSI match.
+  so the screen, PNG, PDF, HTML, SVG and ANSI match.
+- `AsciiExport` writes HTML, SVG, ANSI and text for chats. `engine/font` reads TrueType fonts
+  (`TrueTypeFont`) and builds subsets (`FontSubsetter`):
+  - HTML embeds the glyphs it uses as "ASCII Studio Mono": renamed, because JetBrains Mono is a
+    trademark, with the copyright and OFL notices kept. Braille, which JetBrains Mono lacks, comes
+    from `BrailleGlyphs`: composites of one dot glyph, placed where the renderer draws the dots.
+  - SVG draws the glyph outlines and the Braille dots, so it needs no font where it is opened.
+  - The font tests read the app's font through the `appFont` system property, which
+    `engine/build.gradle.kts` sets.
 
 ### App (`app/`)
 
@@ -161,7 +171,10 @@ profile when the app does not come from Google Play.
   the art itself (the donut). They come from a `BitmapShader` with one pixel per cell and
   nearest-neighbour filtering, cached per art and paper; color tiles are one rectangle with
   another such shader. Braille is drawn as real dots. `AsciiArtView` adds fit, zoom and pan.
-  `ArtExporter` renders PNGs and writes TXT, HTML and ANSI.
+  `ArtExporter` renders PNGs, at the art's own size or in an `ImageFormat` frame (posts, stories,
+  the screen as a wallpaper, A4 at 300 dpi), and writes TXT, HTML, ANSI, SVG and PDF. The PDF
+  (`PdfDocument`, one A4 page) is drawn by `AsciiRenderer.drawPlain` with plain colours instead of
+  shaders, so it keeps text and vector shapes.
 - **Look (`ui/studio`):** every screen takes its colours from the art palette.
   - `StudioRoot` (around the navigation graph in `MainActivity`) applies `StudioTheme`, sets the
     system bar icons and draws `StudioBackdrop` once behind all screens, so screens are

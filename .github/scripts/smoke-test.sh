@@ -122,6 +122,23 @@ double_tap() { # label: taps the first element with the label twice, within the 
   sleep 1
 }
 
+save_file() { # label extension: saves through the system file picker and prints the file gzipped
+  tap "Export" && drag_up "Copy text" && tap "$1" || return 1
+  screen "10-picker-$2" 3
+  tap "Save" || return 1
+  sleep 3
+  local name
+  name=$(adb shell ls -t /sdcard/Download | tr -d '\r' | grep "\.$2\$" | head -n 1)
+  if [ -z "$name" ]; then
+    echo "!!! no .$2 file was saved"
+    failures=$((failures + 1))
+    return 1
+  fi
+  echo "===== BEGIN FILE $name ====="
+  adb exec-out cat "/sdcard/Download/$name" | gzip -9 | base64 -w 4000
+  echo "===== END FILE $name ====="
+}
+
 app_log() {
   echo "----- app log -----"
   adb logcat -d -s AsciiStudio:V | tail -n 40
@@ -258,8 +275,26 @@ tap "Detailed" && tap "Mixed" && screen 08-outlines 3
 tap "Show original" && screen 09-original 3
 tap "Show original"
 tap "Export" && screen 10-export-sheet 3
+drag_up "Copy text" && screen 10-export-sheet-files 1
 adb shell input keyevent KEYCODE_BACK
 sleep 2
+# A story keeps the art clear of the buttons that stories show at the top and the bottom.
+tap "Export" && tap "Story 9:16" && screen 10-export-story 1 && tap "Save to Pictures" && screen 10-saved-story 3
+# The device shell splits the command again, so the folder with a space is quoted for it.
+story=$(adb shell "ls -t '/sdcard/Pictures/ASCII Studio'" | tr -d '\r' | head -n 1)
+size=$(adb exec-out "cat '/sdcard/Pictures/ASCII Studio/$story'" | head -c 24 | od -An -tu1 | tr -s ' \n' ' ')
+echo "Story picture $story: $size"
+# The width and height of a PNG are big-endian numbers at bytes 16 to 23.
+if [ "$(echo $size | cut -d' ' -f17-24)" != "0 0 4 56 0 0 7 128" ]; then
+  echo "!!! the story picture is not 1080 × 1920"
+  failures=$((failures + 1))
+fi
+save_file "Save as PDF" pdf
+save_file "Save as SVG" svg
+save_file "Save as HTML" html
+alive export
+# The art is wider than a chat bubble, so a narrower copy is offered.
+tap "Export" && tap "Copy for chat" && screen 10-chat-width 2 && tap "Copy 32 wide" && screen 10-chat-copied 2
 tap "Save to collection" && screen 10-saved-to-collection 3
 
 echo "### Landscape editor"

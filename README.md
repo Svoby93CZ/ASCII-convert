@@ -63,8 +63,17 @@ v telefonu, bez internetu a bez odesílání dat.
 - **Barvy:** 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo
   barvy z fotky. Znak převezme odstín své části fotky a jas nechá na hustotě znaků, takže je
   čitelný i ve stínech. **Barevné dlaždice** pod znaky vrátí barvy fotky jako mozaiku.
-- **Export:** kopírování textu, sdílení textu nebo PNG, uložení do složky
-  `Obrázky/ASCII Studio`, TXT, barevné HTML a ANSI pro terminál (`cat obrazek.ans`).
+- **Export:**
+  - Obrázek PNG ke sdílení nebo do složky `Obrázky/ASCII Studio`: v původní velikosti, pro
+    příspěvky (čtverec 1:1, na výšku 4:5), pro příběhy (9:16, art mimo tlačítka nahoře a dole),
+    jako tapeta v rozlišení displeje nebo k tisku na A4 ve 300 dpi.
+  - Vektorové PDF na stránku A4 (znaky zůstanou textem) a SVG z obrysů písma, které vypadá
+    stejně v prohlížeči, v Inkscapu i na plotru.
+  - Kopírování textu a kopírování pro chat: blok kódu, který WhatsApp, Telegram i Discord ukážou
+    neproporcionálním písmem. U artu širšího než 32 znaků nabídne užší kopii, která se vejde do
+    bubliny.
+  - TXT, HTML a ANSI pro terminál (`cat obrazek.ans`). HTML nese podmnožinu písma s použitými
+    znaky (body Braille dokreslí), takže vypadá v každém prohlížeči jako v aplikaci.
 - Material 3 v barvách zvolené palety s kontrastem textů podle WCAG, edge-to-edge, prediktivní
   gesto zpět, rozložení pro tablety a na šířku, čeština a angličtina (jazyk lze nastavit pro
   aplikaci zvlášť v nastavení Androidu 13+).
@@ -185,7 +194,8 @@ ASCII-convert/
 │   ├── CachingConverter editor: posuvníky tónů fotku znovu nevzorkují
 │   ├── LiveConverter    živá kamera: klidný obraz mezi snímky
 │   ├── CharRamp(s)      sady znaků s naměřenou hustotou inkoustu
-│   ├── AsciiExport      HTML a ANSI export
+│   ├── AsciiExport      HTML, SVG, ANSI a text pro chat
+│   ├── font/            čtení písma TrueType, podmnožina pro HTML, glyfy Braille
 │   ├── PhotoColors      barvy z fotky čitelné na papíru palety, barevné dlaždice
 │   └── Donut            animace z úvodní obrazovky
 ├── app/      Android aplikace (Jetpack Compose)
@@ -238,13 +248,15 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 ## Testy a CI
 
 - `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, barvy z fotky,
-  export, opakované použití vzorků, klidný živý obraz).
+  export do HTML, SVG a ANSI, podmnožina písma, opakované použití vzorků, klidný živý obraz).
 - `./gradlew :app:testDebugUnitTest` – ukládání nastavení a předvoleb přes skutečný DataStore,
-  sbírka na disku, kontrast textů ve všech paletách, čtení snímků z kamery a historie Zpět/Znovu.
+  sbírka na disku, kontrast textů ve všech paletách, čtení snímků z kamery, historie Zpět/Znovu
+  a rozměry obrázků pro export.
 - **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug
   i release APK. S uloženým klíčem pro nahrávání připraví i bundle pro Google Play.
 - **Emulator smoke test** projde aplikaci v Android emulátoru: výběr fotky, sdílení, editor,
-  předvolby, Zpět a Znovu, export, sbírka, otočení na šířku, živá kamera, čeština a tmavý režim.
+  předvolby, Zpět a Znovu, export (obrázek pro příběh, PDF, SVG, HTML, kopírování pro chat),
+  sbírka, otočení na šířku, živá kamera, čeština a tmavý režim.
   Při pádu aplikace selže.
   Nakonec spočítá, kolik snímků za 10 sekund nakreslí pohyblivé dekorace, i v úsporném režimu.
 - **Baseline profile** vygeneruje na emulátoru profil a porovná studený start s ním a bez něj.

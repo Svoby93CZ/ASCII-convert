@@ -20,9 +20,12 @@ import cz.svoby93.asciistudio.data.PresetRepository
 import cz.svoby93.asciistudio.data.SettingsRepository
 import cz.svoby93.asciistudio.data.SourceImage
 import cz.svoby93.asciistudio.data.StudioSettings
-import cz.svoby93.asciistudio.data.TextFormat
+import cz.svoby93.asciistudio.data.FileFormat
+import cz.svoby93.asciistudio.data.ImageFormat
 import cz.svoby93.asciistudio.data.UserPreset
 import cz.svoby93.asciistudio.engine.AsciiArt
+import cz.svoby93.asciistudio.engine.AsciiConverter
+import cz.svoby93.asciistudio.engine.AsciiExport
 import cz.svoby93.asciistudio.engine.AsciiOptions
 import cz.svoby93.asciistudio.engine.CachingConverter
 import cz.svoby93.asciistudio.engine.PixelImage
@@ -225,7 +228,30 @@ class EditorViewModel(
 
     fun copyText() {
         val art = art.value ?: return
-        exporter.copyToClipboard(art)
+        exporter.copyToClipboard(art.toText())
+        confirmCopy()
+    }
+
+    /**
+     * Copies the art in a code block for chat apps. Narrower [columns] than the art has convert
+     * the photo again at that width in the same look, so that the lines fit a chat bubble.
+     */
+    fun copyForChat(columns: Int) {
+        val image = source.value ?: return
+        export { art, settings ->
+            val chatArt = if (columns < art.columns) {
+                withContext(Dispatchers.Default) {
+                    AsciiConverter.convert(image.pixels, optionsFactory.create(settings, columns))
+                }
+            } else {
+                art
+            }
+            exporter.copyToClipboard(AsciiExport.toChat(chatArt))
+            confirmCopy()
+        }
+    }
+
+    private fun confirmCopy() {
         // Android 13+ confirms clipboard copies itself.
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) send(EditorEffect.Message(R.string.message_copied))
     }
@@ -235,14 +261,17 @@ class EditorViewModel(
         send(EditorEffect.Launch(exporter.shareTextIntent(art)))
     }
 
-    fun shareImage() = export { art, settings ->
-        send(EditorEffect.Launch(exporter.shareImageIntent(art, settings.artStyle())))
+    fun shareImage(format: ImageFormat) = export { art, settings ->
+        send(EditorEffect.Launch(exporter.shareImageIntent(art, settings.artStyle(), format)))
     }
 
-    fun saveToPictures() = export { art, settings ->
-        exporter.saveToPictures(art, settings.artStyle())
+    fun saveToPictures(format: ImageFormat) = export { art, settings ->
+        exporter.saveToPictures(art, settings.artStyle(), format)
         send(EditorEffect.Message(R.string.message_saved_pictures))
     }
+
+    /** The size in pixels of the picture of the current art in [format], or `null` without art. */
+    fun imageSize(format: ImageFormat): Pair<Int, Int>? = art.value?.let { exporter.imageSize(it, format) }
 
     /** Keeps the photo and the current settings in the gallery, unless they are there already. */
     fun saveToGallery() {
@@ -267,11 +296,10 @@ class EditorViewModel(
         }
     }
 
-    fun suggestedFileName(format: TextFormat): String = exporter.suggestedFileName(format)
+    fun suggestedFileName(format: FileFormat): String = exporter.suggestedFileName(format)
 
-    fun saveDocument(uri: Uri, format: TextFormat) = export { art, settings ->
-        val content = withContext(Dispatchers.Default) { exporter.text(art, settings.artStyle(), format) }
-        exporter.writeDocument(uri, content)
+    fun saveFile(uri: Uri, format: FileFormat) = export { art, settings ->
+        exporter.writeFile(uri, art, settings.artStyle(), format)
         send(EditorEffect.Message(R.string.message_saved_file))
     }
 

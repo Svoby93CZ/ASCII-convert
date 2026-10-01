@@ -72,6 +72,7 @@ class AsciiRenderer(typeface: Typeface) {
         isFilterBitmap = false
     }
     private val tilePaint = Paint().apply { isFilterBitmap = false }
+    private val plainPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val backgroundPaint = Paint()
     private val shaderMatrix = Matrix()
     private val clipBounds = Rect()
@@ -118,10 +119,78 @@ class AsciiRenderer(typeface: Typeface) {
             paint.color = Color.WHITE
         }
         if (art.isBraille) {
-            dotPaint.strokeWidth = cellWidth / Braille.DOTS_X * DOT_SIZE
+            dotPaint.strokeWidth = cellWidth / Braille.DOTS_X * Braille.DOT_SIZE
             canvas.drawPoints(dots, dotPaint)
         } else {
             drawRows(canvas, art, cellHeight)
+        }
+    }
+
+    /**
+     * Draws [art] like [draw], but with plain colours instead of shaders: runs of glyphs of one
+     * colour, tiles as rectangles and Braille dots as circles. A PDF keeps all of it as text and
+     * vector shapes, where a shader would turn into an image.
+     */
+    fun drawPlain(canvas: Canvas, art: AsciiArt, style: ArtStyle) {
+        val cellHeight = cellHeight(art)
+        style.tileColorsOf(art)?.let { tiles ->
+            plainPaint.style = Paint.Style.FILL
+            // Every tile reaches a little under the next ones, which are drawn later, so that viewers
+            // that smooth the edges of shapes show no seams between them.
+            val overlap = cellWidth * TILE_OVERLAP
+            forEachRun(art, tiles) { row, start, end, color ->
+                plainPaint.color = color
+                val right = end * cellWidth + if (end < art.columns) overlap else 0f
+                val bottom = (row + 1) * cellHeight + if (row < art.rows - 1) overlap else 0f
+                canvas.drawRect(start * cellWidth, row * cellHeight, right, bottom, plainPaint)
+            }
+        }
+        val colors = style.glyphColorsOf(art)
+        if (art.isBraille) {
+            val pitchX = cellWidth / Braille.DOTS_X
+            val pitchY = cellHeight / Braille.DOTS_Y
+            val radius = pitchX * Braille.DOT_SIZE / 2f
+            plainPaint.style = Paint.Style.FILL
+            for (row in 0 until art.rows) {
+                for (column in 0 until art.columns) {
+                    val glyph = art[column, row]
+                    if (glyph == Braille.BLANK) continue
+                    plainPaint.color = colors?.get(row * art.columns + column) ?: style.foreground
+                    for (dotY in 0 until Braille.DOTS_Y) {
+                        for (dotX in 0 until Braille.DOTS_X) {
+                            if (!Braille.isRaised(glyph, dotX, dotY)) continue
+                            val x = column * cellWidth + (dotX + 0.5f) * pitchX
+                            canvas.drawCircle(x, row * cellHeight + (dotY + 0.5f) * pitchY, radius, plainPaint)
+                        }
+                    }
+                }
+            }
+            return
+        }
+        textPaint.shader = null
+        val baseline = (cellHeight - fontHeight) / 2f - fontMetrics.ascent
+        forEachRun(art, colors ?: IntArray(art.chars.size) { style.foreground }) { row, start, end, color ->
+            textPaint.color = color
+            val y = row * cellHeight + baseline
+            canvas.drawText(art.chars, row * art.columns + start, end - start, start * cellWidth, y, textPaint)
+        }
+    }
+
+    /** Calls [action] for every run of cells with the same colour in a row, as columns from start until end. */
+    private inline fun forEachRun(
+        art: AsciiArt,
+        colors: IntArray,
+        action: (row: Int, start: Int, end: Int, color: Int) -> Unit,
+    ) {
+        for (row in 0 until art.rows) {
+            val offset = row * art.columns
+            var start = 0
+            while (start < art.columns) {
+                var end = start + 1
+                while (end < art.columns && colors[offset + end] == colors[offset + start]) end++
+                action(row, start, end, colors[offset + start])
+                start = end
+            }
         }
     }
 
@@ -176,8 +245,8 @@ class AsciiRenderer(typeface: Typeface) {
         /** JetBrains Mono ligatures would merge glyph pairs such as `==` or `->`. */
         const val NO_LIGATURES = "'calt' 0, 'liga' 0"
 
-        /** Dot diameter relative to the dot pitch. */
-        private const val DOT_SIZE = 0.78f
+        /** How far plain tiles reach under their neighbours, relative to the cell width. */
+        private const val TILE_OVERLAP = 0.02f
     }
 }
 

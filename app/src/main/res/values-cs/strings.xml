@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="share_target_label">Převést na ASCII art</string>
 
     <!-- Domů -->
@@ -123,13 +123,33 @@
     <string name="export_copy_supporting">Vlož ho do chatu, e-mailu nebo poznámky</string>
     <string name="export_share_text">Sdílet jako text</string>
     <string name="export_share_image">Sdílet jako obrázek</string>
-    <string name="export_image_supporting">PNG ve vysokém rozlišení</string>
     <string name="export_save_pictures">Uložit do Obrázků</string>
     <string name="export_save_txt">Uložit jako TXT</string>
     <string name="export_save_html">Uložit jako HTML</string>
-    <string name="export_html_supporting">Zachová barvy, otevře se v každém prohlížeči</string>
+    <string name="export_html_supporting">Zachová barvy i písmo, otevře se v každém prohlížeči</string>
     <string name="export_save_ansi">Uložit pro terminál (ANSI)</string>
     <string name="export_ansi_supporting">Barevný výstup pro příkaz cat v terminálu</string>
+    <string name="export_section_image">Obrázek</string>
+    <string name="export_section_text">Text</string>
+    <string name="export_section_files">Soubory</string>
+    <string name="export_image_size">PNG, %1$d × %2$d px</string>
+    <string name="format_original">Původní</string>
+    <string name="format_square">Čtverec 1:1</string>
+    <string name="format_portrait">Na výšku 4:5</string>
+    <string name="format_story">Příběh 9:16</string>
+    <string name="format_wallpaper">Tapeta</string>
+    <string name="format_print">Tisk A4</string>
+    <string name="export_copy_chat">Kopírovat pro chat</string>
+    <string name="export_copy_chat_supporting">Jako blok kódu, který WhatsApp, Telegram i Discord ukážou neproporcionálním písmem</string>
+    <string name="export_save_pdf">Uložit jako PDF</string>
+    <string name="export_pdf_supporting">Vektorově na stránku A4, k tisku</string>
+    <string name="export_save_svg">Uložit jako SVG</string>
+    <string name="export_svg_supporting">Vektorová grafika pro grafické programy, plotry a řezací plotry</string>
+    <string name="chat_width_title">Kopírovat pro chat</string>
+    <!-- The art is always wider than 32 characters here, so the count needs no plural forms. -->
+    <string name="chat_width_text" tools:ignore="PluralsCandidate">Art je široký %1$d znaků. Chat na telefonu ukáže na řádku jen asi 30 až 40 znaků a delší řádky zalomí, takže se obrázek rozpadne.</string>
+    <string name="chat_width_keep">Kopírovat beze změny</string>
+    <string name="chat_width_narrow" tools:ignore="PluralsCandidate">Kopírovat v šířce %1$d</string>
     <string name="chooser_share">Sdílet ASCII art</string>
 
     <!-- Zprávy -->

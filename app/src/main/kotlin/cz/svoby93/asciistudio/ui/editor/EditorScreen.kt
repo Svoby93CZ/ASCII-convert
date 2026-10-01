@@ -27,7 +27,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.svoby93.asciistudio.LocalAppContainer
 import cz.svoby93.asciistudio.R
-import cz.svoby93.asciistudio.data.TextFormat
+import cz.svoby93.asciistudio.data.FileFormat
+import cz.svoby93.asciistudio.data.ImageFormat
 import cz.svoby93.asciistudio.ui.components.rememberArtViewportState
 import cz.svoby93.asciistudio.ui.studio.HistoryActions
 import kotlinx.coroutines.flow.first
@@ -90,18 +91,28 @@ fun EditorScreen(onBack: () -> Unit) {
         }
     }
 
+    var showOriginal by rememberSaveable { mutableStateOf(false) }
+    var showExport by rememberSaveable { mutableStateOf(false) }
+    var imageFormat by rememberSaveable { mutableStateOf(ImageFormat.ORIGINAL) }
+    // The width of the art while the chat dialog offers a narrower copy.
+    var chatColumns by rememberSaveable { mutableStateOf<Int?>(null) }
+
     // One "create document" launcher per format, because the MIME type is fixed per launcher.
-    val saveDocument = TextFormat.entries.associateWith { format ->
+    val saveDocument = FileFormat.entries.associateWith { format ->
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(format.mimeType)) { uri ->
-            if (uri != null) viewModel.saveDocument(uri, format)
+            if (uri != null) viewModel.saveFile(uri, format)
         }
     }
     val storagePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) viewModel.saveToPictures() else viewModel.showMessage(R.string.message_storage_permission)
+        if (granted) {
+            viewModel.saveToPictures(imageFormat)
+        } else {
+            viewModel.showMessage(R.string.message_storage_permission)
+        }
     }
-
-    var showOriginal by rememberSaveable { mutableStateOf(false) }
-    var showExport by rememberSaveable { mutableStateOf(false) }
+    val saveFile: (FileFormat) -> Unit = { format ->
+        saveDocument.getValue(format).launch(viewModel.suggestedFileName(format))
+    }
 
     EditorContent(
         state = state,
@@ -130,14 +141,16 @@ fun EditorScreen(onBack: () -> Unit) {
     )
 
     if (showExport) {
+        val art = state.art
         ExportSheet(
+            imageFormat = imageFormat,
+            onImageFormatChange = { imageFormat = it },
+            imageSize = remember(art, imageFormat) { viewModel.imageSize(imageFormat) },
             onDismiss = { showExport = false },
             onAction = { action ->
                 showExport = false
                 when (action) {
-                    ExportAction.COPY -> viewModel.copyText()
-                    ExportAction.SHARE_TEXT -> viewModel.shareText()
-                    ExportAction.SHARE_IMAGE -> viewModel.shareImage()
+                    ExportAction.SHARE_IMAGE -> viewModel.shareImage(imageFormat)
                     ExportAction.SAVE_PICTURES -> {
                         val needsPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
                             ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
@@ -145,17 +158,34 @@ fun EditorScreen(onBack: () -> Unit) {
                         if (needsPermission) {
                             storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                         } else {
-                            viewModel.saveToPictures()
+                            viewModel.saveToPictures(imageFormat)
                         }
                     }
-                    ExportAction.SAVE_TXT -> saveDocument.getValue(TextFormat.PLAIN)
-                        .launch(viewModel.suggestedFileName(TextFormat.PLAIN))
-                    ExportAction.SAVE_HTML -> saveDocument.getValue(TextFormat.HTML)
-                        .launch(viewModel.suggestedFileName(TextFormat.HTML))
-                    ExportAction.SAVE_ANSI -> saveDocument.getValue(TextFormat.ANSI)
-                        .launch(viewModel.suggestedFileName(TextFormat.ANSI))
+                    ExportAction.COPY -> viewModel.copyText()
+                    ExportAction.COPY_CHAT -> if (art != null && art.columns > CHAT_COLUMNS) {
+                        chatColumns = art.columns
+                    } else {
+                        viewModel.copyForChat(CHAT_COLUMNS)
+                    }
+                    ExportAction.SHARE_TEXT -> viewModel.shareText()
+                    ExportAction.SAVE_PDF -> saveFile(FileFormat.PDF)
+                    ExportAction.SAVE_SVG -> saveFile(FileFormat.SVG)
+                    ExportAction.SAVE_HTML -> saveFile(FileFormat.HTML)
+                    ExportAction.SAVE_TXT -> saveFile(FileFormat.PLAIN)
+                    ExportAction.SAVE_ANSI -> saveFile(FileFormat.ANSI)
                 }
             },
+        )
+    }
+
+    chatColumns?.let { columns ->
+        ChatWidthDialog(
+            columns = columns,
+            onCopy = { width ->
+                chatColumns = null
+                viewModel.copyForChat(width)
+            },
+            onDismiss = { chatColumns = null },
         )
     }
 }

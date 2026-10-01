@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">ASCII Studio</string>
     <string name="share_target_label">Convert to ASCII art</string>
 
@@ -126,13 +126,33 @@
     <string name="export_copy_supporting">Paste it into a chat, e-mail or note</string>
     <string name="export_share_text">Share as text</string>
     <string name="export_share_image">Share as image</string>
-    <string name="export_image_supporting">High resolution PNG</string>
     <string name="export_save_pictures">Save to Pictures</string>
     <string name="export_save_txt">Save as TXT</string>
     <string name="export_save_html">Save as HTML</string>
-    <string name="export_html_supporting">Keeps the colors, opens in any browser</string>
+    <string name="export_html_supporting">Keeps the colors and the font, opens in any browser</string>
     <string name="export_save_ansi">Save for terminal (ANSI)</string>
     <string name="export_ansi_supporting">Colorful output for cat in a terminal</string>
+    <string name="export_section_image">Image</string>
+    <string name="export_section_text">Text</string>
+    <string name="export_section_files">Files</string>
+    <string name="export_image_size">PNG, %1$d × %2$d px</string>
+    <string name="format_original">Original</string>
+    <string name="format_square">Square 1:1</string>
+    <string name="format_portrait">Portrait 4:5</string>
+    <string name="format_story">Story 9:16</string>
+    <string name="format_wallpaper">Wallpaper</string>
+    <string name="format_print">Print A4</string>
+    <string name="export_copy_chat">Copy for chat</string>
+    <string name="export_copy_chat_supporting">As a code block, which WhatsApp, Telegram and Discord show in a monospaced font</string>
+    <string name="export_save_pdf">Save as PDF</string>
+    <string name="export_pdf_supporting">Vector on an A4 page, for printing</string>
+    <string name="export_save_svg">Save as SVG</string>
+    <string name="export_svg_supporting">Vector graphics for design apps, plotters and cutters</string>
+    <string name="chat_width_title">Copy for chat</string>
+    <!-- The art is always wider than 32 characters here, so the count needs no plural forms. -->
+    <string name="chat_width_text" tools:ignore="PluralsCandidate">This art is %1$d characters wide. A chat on a phone shows only about 30 to 40 characters on a line and wraps longer lines, which breaks the picture apart.</string>
+    <string name="chat_width_keep">Copy as it is</string>
+    <string name="chat_width_narrow" tools:ignore="PluralsCandidate">Copy %1$d wide</string>
     <string name="chooser_share">Share ASCII art</string>
 
     <!-- Messages -->

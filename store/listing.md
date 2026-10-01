@@ -36,10 +36,11 @@ HLAVNÍ FUNKCE
 • Barvy: 10 palet (Terminál, Jantar, Rubín, Led, Noc, Synthwave, Modrotisk, LCD, Papír, Inkoust) nebo barvy přímo z fotky, které zůstanou čitelné i ve stínech, a barevné dlaždice pod znaky
 
 EXPORT
-• Kopírování textu do schránky
-• Sdílení textu nebo obrázku PNG
-• Uložení do složky Obrázky
-• Soubory TXT, barevné HTML a ANSI pro terminál
+• Obrázek PNG v původní velikosti, pro příspěvky (1:1, 4:5) a příběhy (9:16), jako tapeta nebo k tisku na A4 ve 300 dpi
+• Vektorové PDF k tisku a SVG pro grafické programy a plotry
+• Kopírování textu, i pro chat: WhatsApp, Telegram a Discord ho ukážou neproporcionálním písmem
+• Sdílení textu nebo obrázku a uložení do složky Obrázky
+• Soubory TXT, HTML s barvami i písmem a ANSI pro terminál
 
 SOUKROMÍ
 Vše se počítá přímo v telefonu. Aplikace nemá přístup k internetu, neobsahuje reklamy ani sledování a vaše fotky nikam neodesílá.
@@ -80,10 +81,11 @@ FEATURES
 • Colors: 10 palettes (Terminal, Amber, Ruby, Ice, Night, Synthwave, Blueprint, LCD, Paper, Ink) or the colors of the photo itself, readable even in the shadows, with optional color tiles behind the characters
 
 EXPORT
-• Copy the text to the clipboard
-• Share the text or a PNG image
-• Save to the Pictures folder
-• TXT, colored HTML and ANSI files for the terminal
+• PNG images at their own size, for posts (1:1, 4:5) and stories (9:16), as a wallpaper or for printing on A4 at 300 dpi
+• Vector PDF for printing and SVG for design apps and plotters
+• Copy the text, also for chats: WhatsApp, Telegram and Discord show it in a monospaced font
+• Share the text or the image, or save it to the Pictures folder
+• TXT, HTML with the colors and the font, and ANSI files for the terminal
 
 PRIVACY
 Everything is computed on your phone. The app has no internet access, no ads and no tracking, and your photos never leave your device.

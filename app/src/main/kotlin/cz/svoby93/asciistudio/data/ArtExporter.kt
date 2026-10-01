@@ -1,5 +1,6 @@
 package cz.svoby93.asciistudio.data
 
+import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentValues
@@ -8,18 +9,23 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Typeface
+import android.graphics.pdf.PdfDocument
+import android.hardware.display.DisplayManager
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.view.Display
 import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
 import cz.svoby93.asciistudio.R
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.engine.AsciiExport
+import cz.svoby93.asciistudio.engine.font.TrueTypeFont
 import cz.svoby93.asciistudio.render.ArtStyle
 import cz.svoby93.asciistudio.render.AsciiRenderer
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.io.OutputStream
@@ -33,10 +39,13 @@ import kotlin.math.sqrt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-enum class TextFormat(val mimeType: String, val extension: String) {
+/** Files the editor saves where the user picks. */
+enum class FileFormat(val mimeType: String, val extension: String) {
     PLAIN("text/plain", "txt"),
     HTML("text/html", "html"),
     ANSI("text/plain", "ans"),
+    SVG("image/svg+xml", "svg"),
+    PDF("application/pdf", "pdf"),
 }
 
 /** Renders, saves and shares finished art. */
@@ -44,29 +53,50 @@ class ArtExporter(
     private val context: Context,
     private val typeface: Typeface,
 ) {
-    fun text(art: AsciiArt, style: ArtStyle, format: TextFormat): String = when (format) {
-        TextFormat.PLAIN -> art.toText()
-        TextFormat.HTML -> AsciiExport.toHtml(
+    /** The app's font, for files that carry the glyphs they use; read when first needed. */
+    private val font: TrueTypeFont by lazy { readFont() }
+
+    // A font resource is a file like a raw one, and openRawResource reads any such file.
+    @SuppressLint("ResourceType")
+    private fun readFont(): TrueTypeFont =
+        context.resources.openRawResource(R.font.jetbrains_mono_regular).use { TrueTypeFont(it.readBytes()) }
+
+    /** The content of a text [format]; a PDF is written by [writeFile] instead. */
+    fun text(art: AsciiArt, style: ArtStyle, format: FileFormat): String = when (format) {
+        FileFormat.PLAIN -> art.toText()
+        FileFormat.HTML -> AsciiExport.toHtml(
             art,
             background = style.background,
             foreground = style.foreground,
             glyphColors = style.glyphColorsOf(art),
             tileColors = style.tileColorsOf(art),
             title = context.getString(R.string.app_name),
+            font = font,
         )
-        TextFormat.ANSI -> AsciiExport.toAnsi(
+        FileFormat.ANSI -> AsciiExport.toAnsi(
             art,
             foreground = style.foreground,
             glyphColors = style.glyphColorsOf(art),
             tileColors = style.tileColorsOf(art),
         )
+        FileFormat.SVG -> AsciiExport.toSvg(
+            art,
+            background = style.background,
+            foreground = style.foreground,
+            font = font,
+            glyphColors = style.glyphColorsOf(art),
+            tileColors = style.tileColorsOf(art),
+            title = context.getString(R.string.app_name),
+            pixelsPerCell = TARGET_CELL_WIDTH_PX,
+        )
+        FileFormat.PDF -> throw IllegalArgumentException("A PDF is no text")
     }
 
-    fun suggestedFileName(format: TextFormat): String = "${baseFileName()}.${format.extension}"
+    fun suggestedFileName(format: FileFormat): String = "${baseFileName()}.${format.extension}"
 
-    fun copyToClipboard(art: AsciiArt) {
+    fun copyToClipboard(text: String) {
         val clipboard = context.getSystemService(ClipboardManager::class.java)
-        clipboard.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.app_name), art.toText()))
+        clipboard.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.app_name), text))
     }
 
     fun shareTextIntent(art: AsciiArt): Intent = chooser(
@@ -75,30 +105,31 @@ class ArtExporter(
             .putExtra(Intent.EXTRA_TEXT, art.toText()),
     )
 
-    suspend fun shareImageIntent(art: AsciiArt, style: ArtStyle): Intent = withContext(Dispatchers.IO) {
-        val directory = File(context.cacheDir, SHARED_DIRECTORY).apply { mkdirs() }
-        // Only the latest shared image is kept around.
-        directory.listFiles()?.forEach { it.delete() }
-        val file = File(directory, "${baseFileName()}.png")
-        val bitmap = renderBitmap(art, style)
-        try {
-            file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        } finally {
-            bitmap.recycle()
+    suspend fun shareImageIntent(art: AsciiArt, style: ArtStyle, format: ImageFormat): Intent =
+        withContext(Dispatchers.IO) {
+            val directory = File(context.cacheDir, SHARED_DIRECTORY).apply { mkdirs() }
+            // Only the latest shared image is kept around.
+            directory.listFiles()?.forEach { it.delete() }
+            val file = File(directory, "${baseFileName()}.png")
+            val bitmap = renderBitmap(art, style, format)
+            try {
+                file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            } finally {
+                bitmap.recycle()
+            }
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            chooser(
+                Intent(Intent.ACTION_SEND)
+                    .setType("image/png")
+                    .putExtra(Intent.EXTRA_STREAM, uri)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    .also { it.clipData = ClipData.newRawUri(null, uri) },
+            )
         }
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        chooser(
-            Intent(Intent.ACTION_SEND)
-                .setType("image/png")
-                .putExtra(Intent.EXTRA_STREAM, uri)
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                .also { it.clipData = ClipData.newRawUri(null, uri) },
-        )
-    }
 
     /** Saves a PNG into Pictures/ASCII Studio. Before Android 10 the caller must hold storage permission. */
-    suspend fun saveToPictures(art: AsciiArt, style: ArtStyle) = withContext(Dispatchers.IO) {
-        val bitmap = renderBitmap(art, style)
+    suspend fun saveToPictures(art: AsciiArt, style: ArtStyle, format: ImageFormat) = withContext(Dispatchers.IO) {
+        val bitmap = renderBitmap(art, style, format)
         try {
             val name = "${baseFileName()}.png"
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -111,9 +142,42 @@ class ArtExporter(
         }
     }
 
-    suspend fun writeDocument(uri: Uri, content: String) = withContext(Dispatchers.IO) {
-        val stream = context.contentResolver.openOutputStream(uri, "wt") ?: throw IOException("Cannot open $uri")
-        stream.bufferedWriter(Charsets.UTF_8).use { it.write(content) }
+    /** Writes [art] as [format] to [uri], which the user picked. */
+    suspend fun writeFile(uri: Uri, art: AsciiArt, style: ArtStyle, format: FileFormat) {
+        val content: ByteArray = withContext(Dispatchers.Default) {
+            if (format == FileFormat.PDF) pdf(art, style) else text(art, style, format).toByteArray(Charsets.UTF_8)
+        }
+        withContext(Dispatchers.IO) {
+            val stream = context.contentResolver.openOutputStream(uri, "wt") ?: throw IOException("Cannot open $uri")
+            stream.use { it.write(content) }
+        }
+    }
+
+    /**
+     * One A4 page with margins of 10 mm, on its side for wide art. The glyphs stay text in the
+     * app's font and the dots and tiles vector shapes, so the art prints sharp at any size.
+     */
+    private fun pdf(art: AsciiArt, style: ArtStyle): ByteArray {
+        val renderer = AsciiRenderer(typeface)
+        val width = renderer.width(art)
+        val height = renderer.height(art)
+        val (pageWidth, pageHeight) =
+            if (width > height) A4_LONG_POINTS to A4_SHORT_POINTS else A4_SHORT_POINTS to A4_LONG_POINTS
+        val placement = Frame(pageWidth, pageHeight, A4_MARGIN_POINTS, A4_MARGIN_POINTS).place(width, height)
+        val document = PdfDocument()
+        try {
+            val page = document.startPage(PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create())
+            page.canvas.apply {
+                drawColor(style.background)
+                translate(placement.left, placement.top)
+                scale(placement.scale, placement.scale)
+                renderer.drawPlain(this, art, style)
+            }
+            document.finishPage(page)
+            return ByteArrayOutputStream().also { document.writeTo(it) }.toByteArray()
+        } finally {
+            document.close()
+        }
     }
 
     /** A small JPEG of the art for the gallery, [PREVIEW_SIZE] pixels on its longer side at most. */
@@ -127,12 +191,51 @@ class ArtExporter(
         }
     }
 
-    /**
-     * Renders the art into a bitmap with a small margin, capped at [MAX_PIXELS] and at [maxSide]
-     * pixels on the longer side.
-     */
-    fun renderBitmap(art: AsciiArt, style: ArtStyle, maxSide: Float = Float.MAX_VALUE): Bitmap {
+    /** The size in pixels of the picture of [art] in [format], as [renderBitmap] makes it. */
+    fun imageSize(art: AsciiArt, format: ImageFormat): Pair<Int, Int> {
         val renderer = AsciiRenderer(typeface)
+        val frame = frameOf(renderer, art, format)
+        if (frame != null) return frame.width to frame.height
+        val (width, height, _) = originalSize(renderer, art, Float.MAX_VALUE)
+        return width to height
+    }
+
+    /**
+     * Renders the art into a bitmap: in the frame of [format], or for [ImageFormat.ORIGINAL] with
+     * a small margin, capped at [MAX_PIXELS] and at [maxSide] pixels on the longer side.
+     */
+    fun renderBitmap(
+        art: AsciiArt,
+        style: ArtStyle,
+        format: ImageFormat = ImageFormat.ORIGINAL,
+        maxSide: Float = Float.MAX_VALUE,
+    ): Bitmap {
+        val renderer = AsciiRenderer(typeface)
+        val frame = frameOf(renderer, art, format)
+        val (width, height, placement) = if (frame != null) {
+            Triple(frame.width, frame.height, frame.place(renderer.width(art), renderer.height(art)))
+        } else {
+            val (width, height, scale) = originalSize(renderer, art, maxSide)
+            val margin = renderer.cellWidth * MARGIN_CELLS * scale
+            Triple(width, height, Placement(scale, margin, margin))
+        }
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(style.background)
+        canvas.translate(placement.left, placement.top)
+        canvas.scale(placement.scale, placement.scale)
+        renderer.draw(canvas, art, style)
+        return bitmap
+    }
+
+    private fun frameOf(renderer: AsciiRenderer, art: AsciiArt, format: ImageFormat): Frame? {
+        if (format == ImageFormat.ORIGINAL) return null
+        val (screenWidth, screenHeight) = screenSize()
+        return format.frame(renderer.width(art), renderer.height(art), screenWidth, screenHeight)
+    }
+
+    /** Width, height and scale of the art at [TARGET_CELL_WIDTH_PX] a cell, within the limits. */
+    private fun originalSize(renderer: AsciiRenderer, art: AsciiArt, maxSide: Float): Triple<Int, Int, Float> {
         val margin = renderer.cellWidth * MARGIN_CELLS
         val contentWidth = renderer.width(art) + 2 * margin
         val contentHeight = renderer.height(art) + 2 * margin
@@ -140,17 +243,19 @@ class ArtExporter(
         val pixels = contentWidth * contentHeight * scale * scale
         if (pixels > MAX_PIXELS) scale *= sqrt(MAX_PIXELS / pixels)
         scale = min(scale, maxSide / max(contentWidth, contentHeight))
-        val bitmap = Bitmap.createBitmap(
+        return Triple(
             floor(contentWidth * scale).toInt().coerceAtLeast(1),
             floor(contentHeight * scale).toInt().coerceAtLeast(1),
-            Bitmap.Config.ARGB_8888,
+            scale,
         )
-        val canvas = Canvas(bitmap)
-        canvas.drawColor(style.background)
-        canvas.scale(scale, scale)
-        canvas.translate(margin, margin)
-        renderer.draw(canvas, art, style)
-        return bitmap
+    }
+
+    /** The full screen of the phone in pixels, with the system bars, in its natural orientation. */
+    private fun screenSize(): Pair<Int, Int> {
+        val mode = context.getSystemService(DisplayManager::class.java).getDisplay(Display.DEFAULT_DISPLAY)?.mode
+        if (mode != null) return mode.physicalWidth to mode.physicalHeight
+        val metrics = context.resources.displayMetrics
+        return metrics.widthPixels to metrics.heightPixels
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -202,5 +307,10 @@ class ArtExporter(
         const val MAX_PIXELS = 8_000_000f
         const val PREVIEW_SIZE = 720f
         const val PREVIEW_QUALITY = 88
+
+        /** A4 in PostScript points of 1/72 inch, with margins of 10 mm. */
+        const val A4_SHORT_POINTS = 595
+        const val A4_LONG_POINTS = 842
+        const val A4_MARGIN_POINTS = 28
     }
 }
