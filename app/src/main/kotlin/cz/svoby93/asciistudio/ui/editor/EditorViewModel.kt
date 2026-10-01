@@ -204,8 +204,8 @@ class EditorViewModel(
 
     private fun travel(step: (StudioSettings) -> StudioSettings?) {
         val current = settingsRepository.settings.value ?: return
-        val target = step(current) ?: return
-        settingsRepository.update { target }
+        step(current)?.let { target -> settingsRepository.update { target } }
+        // Even without a step the history may have dropped steps that changed nothing.
         publishHistory()
     }
 
