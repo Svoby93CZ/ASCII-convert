@@ -30,6 +30,7 @@ import cz.svoby93.asciistudio.R
 import cz.svoby93.asciistudio.data.TextFormat
 import cz.svoby93.asciistudio.ui.components.rememberArtViewportState
 import cz.svoby93.asciistudio.ui.studio.HistoryActions
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
@@ -67,12 +68,22 @@ fun EditorScreen(onBack: () -> Unit) {
                     }
                     is EditorEffect.Message -> launch { snackbarHostState.showSnackbar(resources.getString(effect.text)) }
                     is EditorEffect.Undoable -> launch {
-                        val result = snackbarHostState.showSnackbar(
-                            message = resources.getString(effect.text),
-                            actionLabel = resources.getString(R.string.action_undo),
-                            duration = SnackbarDuration.Long,
-                        )
-                        if (result == SnackbarResult.ActionPerformed) viewModel.undo()
+                        val offer = launch {
+                            val result = snackbarHostState.showSnackbar(
+                                message = resources.getString(effect.text),
+                                actionLabel = resources.getString(R.string.action_undo),
+                                duration = SnackbarDuration.Long,
+                            )
+                            if (result == SnackbarResult.ActionPerformed) viewModel.undo()
+                        }
+                        // Any later change, undo or redo withdraws the offer, so that it never
+                        // undoes something else. Cancelling showSnackbar removes the message.
+                        val withdrawal = launch {
+                            viewModel.historyStates.first { it.version != effect.version }
+                            offer.cancel()
+                        }
+                        offer.join()
+                        withdrawal.cancel()
                     }
                 }
             }

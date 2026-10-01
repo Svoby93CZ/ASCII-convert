@@ -58,12 +58,15 @@ sealed interface EditorEffect {
 
     data class Message(@StringRes val text: Int) : EditorEffect
 
-    /** A message with an action that undoes what just happened. */
-    data class Undoable(@StringRes val text: Int) : EditorEffect
+    /** A message with an action that undoes what just happened, while the history is still at [version]. */
+    data class Undoable(@StringRes val text: Int, val version: Long) : EditorEffect
 }
 
-/** Whether the settings of the editor can be undone or redone. */
-data class HistoryState(val canUndo: Boolean = false, val canRedo: Boolean = false)
+/**
+ * Whether the settings of the editor can be undone or redone. [version] counts the changes, undos
+ * and redos, so that an offer to undo one of them can tell when something else came after it.
+ */
+data class HistoryState(val canUndo: Boolean = false, val canRedo: Boolean = false, val version: Long = 0)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditorViewModel(
@@ -195,7 +198,7 @@ class EditorViewModel(
         history.close()
         settingsRepository.update { after }
         publishHistory()
-        send(EditorEffect.Undoable(R.string.message_settings_reset))
+        send(EditorEffect.Undoable(R.string.message_settings_reset, historyState.value.version))
     }
 
     fun undo() = travel(history::undo)
@@ -210,7 +213,7 @@ class EditorViewModel(
     }
 
     private fun publishHistory() {
-        historyState.value = HistoryState(history.canUndo, history.canRedo)
+        historyState.update { HistoryState(history.canUndo, history.canRedo, it.version + 1) }
     }
 
     fun savePreset(name: String) {
