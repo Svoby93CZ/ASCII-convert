@@ -97,6 +97,40 @@ app_log() {
   adb logcat -d -s AsciiStudio:V | tail -n 40
 }
 
+measure() { # name: frames the app draws and CPU time it takes during 10 seconds of the current screen
+  local pid before after frames ticks cpu
+  pid=$(adb shell pidof "$PKG" | tr -d '\r')
+  if [ -z "$pid" ]; then
+    echo "!!! $PKG is not running, $1 not measured"
+    failures=$((failures + 1))
+    return 1
+  fi
+  adb shell dumpsys gfxinfo "$PKG" reset >/dev/null
+  before=$(adb shell cat "/proc/$pid/stat" | tr -d '\r' | awk '{print $14 + $15}')
+  sleep 10
+  after=$(adb shell cat "/proc/$pid/stat" | tr -d '\r' | awk '{print $14 + $15}')
+  frames=$(adb shell dumpsys gfxinfo "$PKG" | tr -d '\r' | sed -n 's/^Total frames rendered: //p' | head -n 1)
+  ticks=$(adb shell getconf CLK_TCK 2>/dev/null | tr -d '\r')
+  [[ "$ticks" =~ ^[0-9]+$ ]] || ticks=100
+  cpu="?"
+  if [[ "$before" =~ ^[0-9]+$ && "$after" =~ ^[0-9]+$ ]]; then
+    cpu=$(( (after - before) * 1000 / ticks / 10 ))
+  fi
+  echo "===== FRAMES $1: ${frames:-?} frames in 10 s, CPU $cpu ms per second ====="
+}
+
+battery_saver() { # on|off; the system refuses battery saver while the device charges
+  if [ "$1" = on ]; then
+    adb shell dumpsys battery unplug
+    adb shell cmd power set-mode 1
+  else
+    adb shell cmd power set-mode 0
+    adb shell dumpsys battery reset
+  fi
+  sleep 2
+  echo "(battery saver: $(adb shell settings get global low_power | tr -d '\r'))"
+}
+
 adb install -r "$APK" || exit 1
 adb shell pm grant "$PKG" android.permission.CAMERA
 adb shell settings put system accelerometer_rotation 0
@@ -219,6 +253,25 @@ screen 14-captured 8
 alive capture
 adb shell input keyevent KEYCODE_BACK
 sleep 2
+
+echo "### Frames of moving decorations"
+# The emulator runs without animations. They come back for a while, to count the frames they draw.
+adb shell settings put global animator_duration_scale 1
+adb shell am force-stop "$PKG"
+adb shell am start -W -n "$ACTIVITY"
+sleep 3
+measure 18-home
+tap "Live ASCII camera" && sleep 5 && measure 18-camera
+tap "BACKGROUND" && tap "Rain" && measure 18-camera-rain
+battery_saver on
+measure 18-camera-rain-saver
+tap "ASCII"
+adb shell input keyevent KEYCODE_BACK
+sleep 2
+measure 18-home-saver
+battery_saver off
+adb shell settings put global animator_duration_scale 0
+alive frames
 
 echo "### Czech and dark theme"
 adb shell cmd uimode night yes

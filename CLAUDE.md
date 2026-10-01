@@ -25,7 +25,10 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
   tapping visible texts and content descriptions (`ui.py find`: exact match first, then
   case-insensitive substring), so renaming UI labels can break it. Update the script together
   with UI changes, and tag such commits `[emulator]`. Every step prints a base64 JPEG between
-  `===== BEGIN IMAGE <name> =====` and `===== END IMAGE <name> =====` in the job log.
+  `===== BEGIN IMAGE <name> =====` and `===== END IMAGE <name> =====` in the job log. Near the
+  end it turns animations on and prints `===== FRAMES <name>: ... =====` lines: the frames the app
+  draws and the CPU time it takes in 10 seconds on screens with moving decorations, also in
+  battery saver.
 
 ## Cloud sessions
 
