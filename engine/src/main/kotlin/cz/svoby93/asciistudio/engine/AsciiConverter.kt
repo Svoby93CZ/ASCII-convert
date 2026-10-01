@@ -8,31 +8,81 @@ import kotlin.math.roundToInt
  * The converter is stateless and thread-safe; a conversion is a pure function of the image and
  * the options, which makes it trivial to run on a background dispatcher and to cancel by simply
  * discarding outdated results.
+ *
+ * A conversion has two halves. [sample] averages the image into the grids the options need; it
+ * reads every pixel of the image and takes most of the time. The [convert] that takes [Samples]
+ * turns the grids into glyphs, and settings that only change tones, dithering or the
+ * sensitivity of outlines can repeat it on the same samples, as [CachingConverter] does.
  */
 object AsciiConverter {
 
-    fun convert(image: PixelImage, options: AsciiOptions): AsciiArt = when (val glyphs = options.glyphs) {
-        is GlyphSet.Ramp -> convertRamp(image, options, glyphs.ramp)
-        GlyphSet.Braille -> convertBraille(image, options)
-    }
+    fun convert(image: PixelImage, options: AsciiOptions): AsciiArt = convert(sample(image, options), options)
 
     /** Number of text rows needed to keep the image proportions for the given cell shape. */
     fun rowsFor(imageWidth: Int, imageHeight: Int, columns: Int, cellAspect: Float): Int =
         (columns * (imageHeight.toFloat() / imageWidth) * cellAspect).roundToInt().coerceAtLeast(1)
 
-    private fun convertRamp(image: PixelImage, options: AsciiOptions, ramp: CharRamp): AsciiArt {
-        val columns = options.columns
-        val rows = rowsFor(image.width, image.height, columns, options.cellAspect)
-        val withEdges = options.edgeMode != EdgeMode.OFF
+    /** The second half of a conversion: tones, dithering, glyphs and outlines from [samples]. */
+    fun convert(samples: Samples, options: AsciiOptions): AsciiArt {
+        require(samples.fit(options)) { "The samples were made for other options" }
+        return when (val glyphs = options.glyphs) {
+            is GlyphSet.Ramp -> convertRamp(samples, options, glyphs.ramp)
+            GlyphSet.Braille -> convertBraille(samples, options)
+        }
+    }
 
-        // Outlines need a finer view of the image; the cell grid is then derived from it.
-        val fine = if (withEdges) Sampler.sample(image, columns * EDGE_OVERSAMPLING, rows * EDGE_OVERSAMPLING) else null
-        val grid = fine?.downsample(EDGE_OVERSAMPLING, EDGE_OVERSAMPLING) ?: Sampler.sample(image, columns, rows)
+    /** The first half of a conversion: [image] averaged into the grids that [options] need. */
+    fun sample(image: PixelImage, options: AsciiOptions): Samples {
+        val width = image.width
+        val height = image.height
+        val columns = options.columns
+        return when (options.glyphs) {
+            is GlyphSet.Ramp -> {
+                val rows = rowsFor(width, height, columns, options.cellAspect)
+                // Outlines need a finer view of the image; the cell grid is then derived from it.
+                val fine = if (options.edgeMode == EdgeMode.OFF) {
+                    null
+                } else {
+                    Sampler.sample(image, columns * EDGE_OVERSAMPLING, rows * EDGE_OVERSAMPLING)
+                }
+                Samples(
+                    imageWidth = width,
+                    imageHeight = height,
+                    columns = columns,
+                    rows = rows,
+                    cellAspect = options.cellAspect,
+                    braille = false,
+                    grid = fine?.downsample(EDGE_OVERSAMPLING, EDGE_OVERSAMPLING)
+                        ?: Sampler.sample(image, columns, rows),
+                    fine = fine,
+                )
+            }
+            GlyphSet.Braille -> {
+                val rows = rowsFor(width, height, columns, AsciiOptions.BRAILLE_CELL_ASPECT)
+                Samples(
+                    imageWidth = width,
+                    imageHeight = height,
+                    columns = columns,
+                    rows = rows,
+                    cellAspect = AsciiOptions.BRAILLE_CELL_ASPECT,
+                    braille = true,
+                    grid = Sampler.sample(image, columns * Braille.DOTS_X, rows * Braille.DOTS_Y),
+                    fine = null,
+                )
+            }
+        }
+    }
+
+    private fun convertRamp(samples: Samples, options: AsciiOptions, ramp: CharRamp): AsciiArt {
+        val columns = samples.columns
+        val rows = samples.rows
+        val grid = samples.grid
 
         val ink = ToneMapper.toInk(grid, options)
         val indices = Quantizer.quantize(ink, columns, rows, ramp.levels, options.dithering)
         val chars = CharArray(columns * rows) { ramp.chars[indices[it]] }
 
+        val fine = samples.fine
         if (fine != null) {
             val gradients = EdgeDetector.sobel(
                 ToneMapper.normalizedLuma(fine, options.autoLevels),
@@ -40,7 +90,7 @@ object AsciiConverter {
                 fine.height,
             )
             // Width / height of one gradient sample in image pixels.
-            val yScale = (image.width.toFloat() * fine.height) / (image.height.toFloat() * fine.width)
+            val yScale = (samples.imageWidth.toFloat() * fine.height) / (samples.imageHeight.toFloat() * fine.width)
             val outlines = EdgeDetector.cellOutlines(
                 gradients,
                 columns,
@@ -62,12 +112,12 @@ object AsciiConverter {
         return AsciiArt(columns, rows, chars, grid.colors, options.cellAspect, isBraille = false)
     }
 
-    private fun convertBraille(image: PixelImage, options: AsciiOptions): AsciiArt {
-        val columns = options.columns
-        val rows = rowsFor(image.width, image.height, columns, AsciiOptions.BRAILLE_CELL_ASPECT)
-        val dotsWide = columns * Braille.DOTS_X
-        val dotsHigh = rows * Braille.DOTS_Y
-        val dots = Sampler.sample(image, dotsWide, dotsHigh)
+    private fun convertBraille(samples: Samples, options: AsciiOptions): AsciiArt {
+        val columns = samples.columns
+        val rows = samples.rows
+        val dots = samples.grid
+        val dotsWide = dots.width
+        val dotsHigh = dots.height
 
         val ink = ToneMapper.toInk(dots, options)
         val lit = Quantizer.quantize(ink, dotsWide, dotsHigh, BINARY_LEVELS, options.dithering)

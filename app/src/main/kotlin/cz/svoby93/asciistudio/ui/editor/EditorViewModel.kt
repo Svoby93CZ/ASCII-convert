@@ -20,8 +20,8 @@ import cz.svoby93.asciistudio.data.SourceImage
 import cz.svoby93.asciistudio.data.StudioSettings
 import cz.svoby93.asciistudio.data.TextFormat
 import cz.svoby93.asciistudio.engine.AsciiArt
-import cz.svoby93.asciistudio.engine.AsciiConverter
 import cz.svoby93.asciistudio.engine.AsciiOptions
+import cz.svoby93.asciistudio.engine.CachingConverter
 import cz.svoby93.asciistudio.render.AsciiOptionsFactory
 import cz.svoby93.asciistudio.render.artStyle
 import cz.svoby93.asciistudio.ui.EditorRoute
@@ -67,6 +67,9 @@ class EditorViewModel(
     private val busy = MutableStateFlow(false)
     private val effectChannel = Channel<EditorEffect>(Channel.BUFFERED)
 
+    /** Keeps the samples of the photo, so that tone sliders do not read all of its pixels again. */
+    private val converter = CachingConverter()
+
     /** The gallery item last saved or opened for this photo; it survives a process restart. */
     private val savedItemId: StateFlow<String?> = savedStateHandle.getStateFlow(KEY_SAVED_ITEM, null)
 
@@ -79,7 +82,7 @@ class EditorViewModel(
     ) { image, settings -> ConversionRequest(image, optionsFactory.create(settings)) }
         // Palette tweaks only change colours, so they do not trigger a new conversion.
         .distinctUntilChanged()
-        .mapLatest { request -> AsciiConverter.convert(request.image.pixels, request.options) }
+        .mapLatest { request -> converter.convert(request.image.pixels, request.options) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 

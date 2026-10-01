@@ -68,6 +68,11 @@ application ID is tied to the Google Play entry and must never change.
     dithers (Floyd–Steinberg, Atkinson, Bayer).
   - Braille: 2×4 dots per cell with binary quantisation.
   - Outlines sample at 2× and use Sobel plus a structure tensor (`EdgeDetector`) to draw `| / - \`.
+- A conversion has two halves. `AsciiConverter.sample(image, options): Samples` averages the
+  image into the grids the options need; it reads every pixel and takes most of the time.
+  `convert(samples, options)` does tones, dithering, glyphs and outlines. `Samples.fit(options)`
+  says whether options can reuse samples: the same width, glyph kind, cell shape and outline mode.
+  `CachingConverter` keeps the samples of the last image, for the editor.
 - `CharRamp` stores each glyph with its measured ink coverage, so tone steps are uneven on
   purpose. Built-in ramps are in `CharRamps`. Custom characters are measured at runtime by the
   app's `GlyphMeasurer` in the bundled JetBrains Mono.
@@ -111,7 +116,8 @@ application ID is tied to the Google Play entry and must never change.
   `EditorRoute(galleryId)` opens an item again, bringing back its photo and settings. The privacy
   policy promises that the collection stays on the device and is not backed up.
 - **Editor:** `EditorViewModel` combines the image and the settings into `AsciiOptions`, then
-  converts with `mapLatest` on `Dispatchers.Default`. Palette-only changes do not reconvert.
+  converts through a `CachingConverter` with `mapLatest` on `Dispatchers.Default`, so tone
+  changes do not sample the photo again. Palette-only changes do not reconvert.
   `EditorControls` holds the Style, Tone and Colors controls; `SettingsWindow` shows them in the
   editor and in the camera.
 - **Rendering:** `AsciiRenderer` draws on an Android `Canvas`, one `drawText` per row.

@@ -170,6 +170,7 @@ Dobré vědět:
 ASCII-convert/
 ├── engine/   Čistý Kotlin (JVM), žádná závislost na Androidu
 │   ├── AsciiConverter   vzorkování → tóny → dithering → znaky (+ obrysy, Braille)
+│   ├── CachingConverter editor: posuvníky tónů fotku znovu nevzorkují
 │   ├── CharRamp(s)      sady znaků s naměřenou hustotou inkoustu
 │   ├── AsciiExport      HTML a ANSI export
 │   ├── PhotoColors      barvy z fotky čitelné na papíru palety, barevné dlaždice
@@ -183,6 +184,10 @@ ASCII-convert/
 - **Engine** pracuje s polem pixelů (`IntArray` ve formátu ARGB), takže je rychlý,
   deterministický a testovatelný na běžné JVM. Převod fotky o šířce 110 znaků trvá jednotky
   milisekund, 300 znaků v režimu Braille s ditheringem kolem 40 ms.
+- **Převod má dvě poloviny.** Vzorkování zprůměruje fotku do mřížky buněk. Čte každý pixel,
+  a proto zabere většinu času. Druhá polovina z mřížky udělá tóny a znaky. Editor si vzorky
+  pamatuje (`CachingConverter`), takže jas, kontrast, ostrost, automatické úrovně, invertování,
+  dithering ani citlivost obrysů fotku znovu nečtou.
 - **UI** je jednosměrné (UDF): `ViewModel` skládá `StateFlow` obrázku a nastavení, převod
   běží na pozadí přes `mapLatest`, takže posuvníky reagují okamžitě a zastaralé výsledky se
   zahodí.
@@ -203,7 +208,7 @@ DataStore, CameraX, Coroutines/Flow, Android Gradle Plugin 9, Gradle 9, minSdk 2
 ## Testy a CI
 
 - `./gradlew :engine:test` – testy převodu (tóny, dithering, obrysy, Braille, barvy z fotky,
-  export).
+  export, opakované použití vzorků).
 - `./gradlew :app:testDebugUnitTest` – ukládání nastavení přes skutečný DataStore, sbírka
   na disku a kontrast textů ve všech paletách.
 - **Android CI** (GitHub Actions) při každém pushi spustí testy a lint a sestaví debug
