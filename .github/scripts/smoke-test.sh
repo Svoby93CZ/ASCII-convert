@@ -256,7 +256,10 @@ sleep 2
 
 echo "### Frames of moving decorations"
 # The emulator runs without animations. They come back for a while, to count the frames they draw.
+# The emulator renders in software; on a small screen it keeps up with the frame rate of the display.
 adb shell settings put global animator_duration_scale 1
+adb shell wm size 360x800
+adb shell wm density 140
 adb shell am force-stop "$PKG"
 adb shell am start -W -n "$ACTIVITY"
 sleep 3
@@ -270,6 +273,9 @@ adb shell input keyevent KEYCODE_BACK
 sleep 2
 measure 18-home-saver
 battery_saver off
+screen 18-home-small 1
+adb shell wm size reset
+adb shell wm density reset
 adb shell settings put global animator_duration_scale 0
 alive frames
 

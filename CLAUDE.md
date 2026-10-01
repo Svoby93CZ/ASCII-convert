@@ -28,7 +28,8 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
   `===== BEGIN IMAGE <name> =====` and `===== END IMAGE <name> =====` in the job log. Near the
   end it turns animations on and prints `===== FRAMES <name>: ... =====` lines: the frames the app
   draws and the CPU time it takes in 10 seconds on screens with moving decorations, also in
-  battery saver.
+  battery saver. It measures on a 360 × 800 screen, because the emulator renders in software and
+  falls to about 10 frames a second at full size.
 
 ## Cloud sessions
 
