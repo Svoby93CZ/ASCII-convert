@@ -92,6 +92,20 @@ drag_up() { # label: drags the scrollable content under the label up, to show wh
   sleep 1
 }
 
+drag_left() { # label: drags the row under the label to the left, to show what is beyond it
+  dump current
+  local target
+  target=$(python3 "$UI" find "$OUT/current.xml" "$1")
+  if [ -z "$target" ]; then
+    echo "!!! could not find '$1' on screen"
+    failures=$((failures + 1))
+    return 1
+  fi
+  set -- $target
+  adb shell input swipe "$1" "$2" $(( $1 - 500 )) "$2" 500
+  sleep 1
+}
+
 hold() { # label: keeps a finger on the first element with the label for a second
   dump current
   local target
@@ -139,6 +153,13 @@ tap_many() { # label count [dy]: taps the label count times in a row, dy pixels 
 
 clear_field() { # deletes the text of the focused field
   adb shell "input keyevent KEYCODE_MOVE_END; for i in \$(seq 20); do input keyevent KEYCODE_DEL; done"
+}
+
+hide_keyboard() { # only when it shows; otherwise Back would leave the screen
+  if adb shell dumpsys input_method | grep -q "mInputShown=true"; then
+    adb shell input keyevent KEYCODE_BACK
+    sleep 1
+  fi
 }
 
 save_file() { # label extension: saves through the system file picker and prints the file gzipped
@@ -290,10 +311,11 @@ alive presets
 
 echo "### Hidden look"
 # The letters of the author's nickname as custom characters unlock a look drawn with them.
-tap "STYLE" && tap "Custom" && tap "Custom characters" && clear_field && adb shell input text svoby
+# The character sets scroll sideways, and Custom is the last of them.
+tap "STYLE" && drag_left "Standard" && tap "Custom" && tap "Custom characters" && clear_field &&
+  adb shell input text svoby
 screen 04-custom-svoby 3
-adb shell input keyevent KEYCODE_BACK
-sleep 1
+hide_keyboard
 tap "PRESETS" && tap "SVOBY" && screen 04-preset-svoby 4
 tap "Classic"
 alive hidden-look
