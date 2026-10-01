@@ -2,6 +2,7 @@
 """Helpers for the emulator smoke test.
 
   ui.py find <window.xml> <label>…  print "x y" of the first node whose text or description matches
+                                    ("desc:<label>" only descriptions, e.g. a slider below its label)
   ui.py summary <window.xml>        print the texts and descriptions visible on screen
   ui.py encode <screenshot.png>     print a small JPEG of the screenshot as base64 lines
   ui.py sample <out.jpg>            write a colourful test photo (used when downloading fails)
@@ -28,9 +29,12 @@ def find(path, *labels):
 
 
 def find_one(path, label):
+    attributes = ("text", "content-desc")
+    if label.startswith("desc:"):
+        label, attributes = label[len("desc:"):], ("content-desc",)
     exact = partial = None
     for node in nodes(path):
-        for attribute in ("text", "content-desc"):
+        for attribute in attributes:
             value = (node.get(attribute) or "").strip()
             if not value:
                 continue

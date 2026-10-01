@@ -24,8 +24,9 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
 - **Emulator smoke test** (`.github/workflows/emulator.yml`, `.github/scripts/smoke-test.sh`) runs
   only for pushes whose commit message contains `[emulator]`, or manually. It drives the app by
   tapping visible texts and content descriptions (`ui.py find`: exact match first, then
-  case-insensitive substring), so renaming UI labels can break it. Update the script together
-  with UI changes, and tag such commits `[emulator]`. The editor and the camera open on the
+  case-insensitive substring; `desc:Contrast` matches descriptions only, such as the slider below
+  the label "Contrast"), so renaming UI labels can break it. Update the script together with UI
+  changes, and tag such commits `[emulator]`. The editor and the camera open on the
   presets tab; tabs are tapped by their capitalised labels (`TONE`), because other texts mention
   tones and colors. Every step prints a base64 JPEG between
   `===== BEGIN IMAGE <name> =====` and `===== END IMAGE <name> =====` in the job log. Near the

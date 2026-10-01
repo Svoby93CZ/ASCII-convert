@@ -106,6 +106,22 @@ hold() { # label: keeps a finger on the first element with the label for a secon
   sleep 1
 }
 
+double_tap() { # label: taps the first element with the label twice, within the double tap timeout
+  dump current
+  local target start
+  target=$(python3 "$UI" find "$OUT/current.xml" "$1")
+  if [ -z "$target" ]; then
+    echo "!!! could not find '$1' on screen"
+    failures=$((failures + 1))
+    return 1
+  fi
+  start=$(date +%s%N)
+  # Both taps in one adb shell: each `input` takes some tens of milliseconds, a new adb call more.
+  adb shell "input tap $target; input tap $target"
+  echo "(double tap took $(( ($(date +%s%N) - start) / 1000000 )) ms)"
+  sleep 1
+}
+
 app_log() {
   echo "----- app log -----"
   adb logcat -d -s AsciiStudio:V | tail -n 40
@@ -223,8 +239,12 @@ hold "My preset 1" && screen 04-preset-delete 1 && tap "Delete" && screen 04-pre
 tap "More options" && tap "Reset settings" && screen 04-reset 1
 # The message offers to undo the reset; the button in the window border does the same.
 tap "Undo" && screen 04-reset-undone 2
+# Newspaper has a contrast of 30 %. The first tap moves the slider to 0 %, the second brings back
+# the default of 15 %, and one undo returns to 30 %.
+tap "TONE" && double_tap "desc:Contrast" && screen 04-slider-reset 2
+tap "Undo" && screen 04-slider-undone 2
 # Back to the default look, so that the later screens stay comparable between runs.
-tap "Classic"
+tap "PRESETS" && tap "Classic"
 alive presets
 
 echo "### Editor controls"
