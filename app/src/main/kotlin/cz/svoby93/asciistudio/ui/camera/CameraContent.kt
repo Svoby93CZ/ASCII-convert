@@ -53,15 +53,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import cz.svoby93.asciistudio.R
+import cz.svoby93.asciistudio.data.ArtPalette
 import cz.svoby93.asciistudio.data.CharsetPreset
 import cz.svoby93.asciistudio.data.ColorMode
 import cz.svoby93.asciistudio.data.StudioSettings
+import cz.svoby93.asciistudio.data.offeredPalettes
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.render.artStyle
 import cz.svoby93.asciistudio.ui.components.AsciiArtView
 import cz.svoby93.asciistudio.ui.editor.PresetShelf
 import cz.svoby93.asciistudio.ui.editor.SettingsChange
 import cz.svoby93.asciistudio.ui.studio.BlinkingDot
+import cz.svoby93.asciistudio.ui.studio.DeveloperStats
 import cz.svoby93.asciistudio.ui.studio.LocalStudioColors
 import cz.svoby93.asciistudio.ui.studio.RoundButton
 import cz.svoby93.asciistudio.ui.studio.SettingsTab
@@ -91,6 +94,8 @@ fun CameraContent(
     presets: PresetShelf,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    palettes: List<ArtPalette> = offeredPalettes(signatureLook = false),
+    developerStats: List<String> = emptyList(),
 ) {
     val recording = recordingSeconds != null
     // A photo would leave the camera, so it waits until the recording is done.
@@ -121,6 +126,7 @@ fun CameraContent(
                         frontCamera = frontCamera,
                         unavailable = cameraUnavailable,
                         recordingSeconds = recordingSeconds,
+                        developerStats = developerStats,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -143,6 +149,7 @@ fun CameraContent(
                             contentHeight = null,
                             charsets = LiveCharsets,
                             columnsRange = LiveColumns,
+                            palettes = palettes,
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(start = 8.dp, end = 16.dp),
@@ -164,6 +171,7 @@ fun CameraContent(
                         frontCamera = frontCamera,
                         unavailable = cameraUnavailable,
                         recordingSeconds = recordingSeconds,
+                        developerStats = developerStats,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
@@ -180,6 +188,7 @@ fun CameraContent(
                         contentHeight = (height * 0.24f).coerceIn(150.dp, 260.dp),
                         charsets = LiveCharsets,
                         columnsRange = LiveColumns,
+                        palettes = palettes,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(start = 16.dp, end = 16.dp, top = 8.dp),
@@ -211,6 +220,7 @@ private fun CameraWindow(
     frontCamera: Boolean,
     unavailable: Boolean,
     recordingSeconds: Int?,
+    developerStats: List<String>,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalStudioColors.current
@@ -250,6 +260,8 @@ private fun CameraWindow(
                 .matchParentSize()
                 .padding(10.dp),
         )
+        // Inside the corner marks.
+        DeveloperStats(developerStats, Modifier.padding(24.dp))
         if (unavailable) {
             Text(
                 stringResource(R.string.camera_unavailable),

@@ -13,11 +13,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cz.svoby93.asciistudio.Signature
 import cz.svoby93.asciistudio.data.Backdrop
 import cz.svoby93.asciistudio.ui.theme.MonoFontFamily
 import kotlin.math.ceil
@@ -90,7 +92,11 @@ private fun AsciiBackdrop(colors: StudioColors, scale: Float, modifier: Modifier
     )
 }
 
-/** Streams of glyphs falling at different speeds, each with a bright head and a fading trail. */
+/**
+ * Streams of glyphs falling at different speeds, each with a bright head and a fading trail. Now
+ * and then the first stream, which the windows leave free on every screen, lights up the letters
+ * of the author's nickname as it passes them.
+ */
 @Composable
 private fun RainBackdrop(colors: StudioColors, animate: Boolean, scale: Float, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
@@ -99,6 +105,7 @@ private fun RainBackdrop(colors: StudioColors, animate: Boolean, scale: Float, m
         modifier.drawWithCache {
             val style = GlyphStyle.copy(fontSize = GlyphStyle.fontSize * scale)
             val glyphs = RAIN_GLYPHS.map { measurer.measure(it.toString(), style) }
+            val letters = Signature.NAME.map { measurer.measure(it.toString(), style) }
             val cellWidth = glyphs.first().size.width * 1.8f
             val cellHeight = glyphs.first().size.height.toFloat()
             val columns = ceil(size.width / cellWidth).toInt()
@@ -108,6 +115,11 @@ private fun RainBackdrop(colors: StudioColors, animate: Boolean, scale: Float, m
             val lengths = IntArray(columns) { 6 + random.nextInt(16) }
             val phases = FloatArray(columns) { random.nextFloat() * 200f }
             val cells = IntArray(columns * rows) { random.nextInt(glyphs.size) }
+            if (columns > 0) {
+                // Slow and long enough to show the whole name for a while.
+                speeds[0] = SIGNATURE_SPEED
+                lengths[0] = SIGNATURE_LENGTH
+            }
             val headAlpha = if (colors.isLight) 0.45f else 0.6f
             val trailAlpha = if (colors.isLight) 0.24f else 0.3f
             onDrawBehind {
@@ -117,26 +129,46 @@ private fun RainBackdrop(colors: StudioColors, animate: Boolean, scale: Float, m
                     val length = lengths[column]
                     // The stream enters above the screen and leaves below it before it comes back.
                     val cycle = rows + 2f * length
-                    val head = floor((phases[column] + time * speeds[column]) % cycle).toInt() - length
+                    val travel = phases[column] + time * speeds[column]
+                    val head = floor(travel % cycle).toInt() - length
+                    // A still frame never keeps the name on screen.
+                    val nameTop = if (column == 0 && animate) signatureTop(floor(travel / cycle).toInt(), rows) else -1
                     for (k in 0 until length) {
                         val row = head - k
                         if (row !in 0 until rows) continue
                         val cell = column * rows + row
-                        // The head keeps changing its glyph, the trail keeps what the head left behind.
-                        val index = if (k == 0) (cells[cell] + (time * 14f).toInt()) % glyphs.size else cells[cell]
-                        val glyph = glyphs[index]
                         val fade = 1f - k / length.toFloat()
-                        drawText(
-                            glyph,
-                            color = colors.ink,
-                            topLeft = Offset(column * cellWidth + (cellWidth - glyph.size.width) / 2f, row * cellHeight),
-                            alpha = if (k == 0) headAlpha else trailAlpha * fade * fade,
-                        )
+                        val letter = row - nameTop
+                        val glyph: TextLayoutResult
+                        val alpha: Float
+                        if (nameTop >= 0 && k > 0 && letter in letters.indices) {
+                            // The letters stay lit behind the head, brighter than the rest of the trail.
+                            glyph = letters[letter]
+                            alpha = headAlpha * fade
+                        } else {
+                            // The head keeps changing its glyph, the trail keeps what the head left behind.
+                            val index = if (k == 0) (cells[cell] + (time * 14f).toInt()) % glyphs.size else cells[cell]
+                            glyph = glyphs[index]
+                            alpha = if (k == 0) headAlpha else trailAlpha * fade * fade
+                        }
+                        val x = column * cellWidth + (cellWidth - glyph.size.width) / 2f
+                        drawText(glyph, color = colors.ink, topLeft = Offset(x, row * cellHeight), alpha = alpha)
                     }
                 }
             }
         },
     )
+}
+
+/**
+ * The row where the author's nickname starts in [pass] of the first stream of the rain, or -1:
+ * only every [SIGNATURE_EVERY]th pass brings the name, each time at another height, away from the
+ * system bars.
+ */
+private fun signatureTop(pass: Int, rows: Int): Int {
+    val room = rows - Signature.NAME.length - 2 * SIGNATURE_MARGIN
+    if (pass % SIGNATURE_EVERY != SIGNATURE_EVERY - 1 || room < 0) return -1
+    return SIGNATURE_MARGIN + (pass / SIGNATURE_EVERY * SIGNATURE_STEP).mod(room + 1)
 }
 
 /** Fine lines with brighter crosses at every fourth crossing, centred on the glow. */
@@ -255,6 +287,13 @@ private const val ASCII_MAX_DENSITY = 0.78f
 private const val RAIN_GLYPHS = "01<>{}[]()/\\|=+*#%@$&"
 private const val ASCII_SEED = 1977
 private const val RAIN_SEED = 1999
+
+/** Rows a second and length of the stream that signs the rain, about once a minute. */
+private const val SIGNATURE_SPEED = 5f
+private const val SIGNATURE_LENGTH = 16
+private const val SIGNATURE_EVERY = 4
+private const val SIGNATURE_MARGIN = 4
+private const val SIGNATURE_STEP = 11
 private const val GLOW_CENTER_Y = 0.4f
 private const val ROLL_SECONDS = 7f
 private const val START_SECONDS = 3f

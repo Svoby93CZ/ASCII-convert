@@ -48,6 +48,7 @@ import cz.svoby93.asciistudio.data.StudioSettings
 import cz.svoby93.asciistudio.data.StylePreset
 import cz.svoby93.asciistudio.data.UserPreset
 import cz.svoby93.asciistudio.data.hasLookOf
+import cz.svoby93.asciistudio.data.offeredLooks
 import cz.svoby93.asciistudio.data.withLookOf
 import cz.svoby93.asciistudio.engine.AsciiArt
 import cz.svoby93.asciistudio.engine.PixelImage
@@ -61,7 +62,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * What the presets need besides the settings: the presets the user saved, a small copy of the
- * picture for the previews, and how to save and delete presets.
+ * picture for the previews, how to save and delete presets, and the built-in looks to offer.
  */
 @Stable
 class PresetShelf(
@@ -70,6 +71,7 @@ class PresetShelf(
     val thumbnail: PixelImage?,
     val onSave: (name: String) -> Unit,
     val onDelete: (UserPreset) -> Unit,
+    val looks: List<StylePreset> = offeredLooks(signatureLook = false),
 )
 
 /** Built-in looks and the user's own, each as a tile with the picture in that look. */
@@ -79,7 +81,7 @@ fun PresetControls(settings: StudioSettings, onChange: SettingsChange, shelf: Pr
     var deleting by remember { mutableStateOf<UserPreset?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TileRow {
-            StylePreset.entries.forEach { preset ->
+            shelf.looks.forEach { preset ->
                 PresetTile(
                     name = stringResource(preset.label),
                     look = preset.look,

@@ -92,6 +92,20 @@ drag_up() { # label: drags the scrollable content under the label up, to show wh
   sleep 1
 }
 
+drag_left() { # label: drags the row under the label to the left, to show what is beyond it
+  dump current
+  local target
+  target=$(python3 "$UI" find "$OUT/current.xml" "$1")
+  if [ -z "$target" ]; then
+    echo "!!! could not find '$1' on screen"
+    failures=$((failures + 1))
+    return 1
+  fi
+  set -- $target
+  adb shell input swipe "$1" "$2" $(( $1 - 500 )) "$2" 500
+  sleep 1
+}
+
 hold() { # label: keeps a finger on the first element with the label for a second
   dump current
   local target
@@ -120,6 +134,32 @@ double_tap() { # label: taps the first element with the label twice, within the 
   adb shell "input tap $target; input tap $target"
   echo "(double tap took $(( ($(date +%s%N) - start) / 1000000 )) ms)"
   sleep 1
+}
+
+tap_many() { # label count [dy]: taps the label count times in a row, dy pixels below its centre
+  dump current
+  local target
+  target=$(python3 "$UI" find "$OUT/current.xml" "$1")
+  if [ -z "$target" ]; then
+    echo "!!! could not find '$1' on screen"
+    failures=$((failures + 1))
+    return 1
+  fi
+  set -- $target "$2" "${3:-0}"
+  # All taps in one adb shell, so that they follow each other quickly.
+  adb shell "for i in \$(seq $3); do input tap $1 $(( $2 + $4 )); done"
+  sleep 1
+}
+
+clear_field() { # deletes the text of the focused field
+  adb shell "input keyevent KEYCODE_MOVE_END; for i in \$(seq 20); do input keyevent KEYCODE_DEL; done"
+}
+
+hide_keyboard() { # only when it shows; otherwise Back would leave the screen
+  if adb shell dumpsys input_method | grep -q "mInputShown=true"; then
+    adb shell input keyevent KEYCODE_BACK
+    sleep 1
+  fi
 }
 
 save_file() { # label extension: saves through the system file picker and prints the file gzipped
@@ -211,7 +251,12 @@ adb shell wm user-rotation lock 0 || adb shell settings put system user_rotation
 sleep 3
 alive home-landscape
 
-echo "### About and privacy policy"
+echo "### About, developer mode and privacy policy"
+# Seven taps on the version switch the developer mode on, like the build number in Android settings.
+# The trailing space leaves out the app name in the top bar.
+tap "About" && screen 01-about 2 && tap_many "ASCII STUDIO " 7 && screen 01-developer-mode 2
+adb shell input keyevent KEYCODE_BACK
+sleep 1
 tap "About" && tap "Privacy policy" && screen 01-privacy-policy 2
 adb shell input keyevent KEYCODE_BACK
 sleep 1
@@ -264,6 +309,17 @@ tap "Undo" && screen 04-slider-undone 2
 tap "PRESETS" && tap "Classic"
 alive presets
 
+echo "### Hidden look"
+# The letters of the author's nickname as custom characters unlock a look drawn with them.
+# The character sets scroll sideways, and Custom is the last of them.
+tap "STYLE" && drag_left "Standard" && tap "Custom" && tap "Your characters" && clear_field &&
+  adb shell input text svoby
+screen 04-custom-svoby 3
+hide_keyboard
+tap "PRESETS" && tap "SVOBY" && screen 04-preset-svoby 4
+tap "Classic"
+alive hidden-look
+
 echo "### Editor controls"
 # Exact labels: the tabs are in capitals, and other texts mention tones and colors.
 tap "TONE" && screen 05-tone 3
@@ -307,6 +363,8 @@ alive landscape
 echo "### Back home"
 adb shell input keyevent KEYCODE_BACK
 screen 12-home-continue 4
+# Five quick taps turn the donut into the author's nickname; without animations it stands still.
+tap_many "donut.c" 5 380 && screen 12-donut-signature 2
 
 echo "### Collection"
 tap "Collection" && screen 12-collection 3
@@ -349,6 +407,12 @@ screen 14-captured 8
 alive capture
 adb shell input keyevent KEYCODE_BACK
 sleep 2
+
+echo "### Developer mode off"
+# The stats of the developer mode would redraw the camera during the measurements.
+tap "About" && tap_many "ASCII STUDIO " 7 && screen 17-developer-mode-off 2
+adb shell input keyevent KEYCODE_BACK
+sleep 1
 
 echo "### Frames of moving decorations"
 # The emulator runs without animations. They come back for a while, to count the frames they draw.

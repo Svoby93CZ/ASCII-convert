@@ -25,8 +25,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,8 +44,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cz.svoby93.asciistudio.R
+import cz.svoby93.asciistudio.Signature
 import cz.svoby93.asciistudio.ui.studio.BlinkingDot
 import cz.svoby93.asciistudio.ui.studio.LocalStudioColors
+import cz.svoby93.asciistudio.ui.studio.MorseLight
 import cz.svoby93.asciistudio.ui.studio.RoundButton
 import cz.svoby93.asciistudio.ui.studio.StudioTopBar
 import cz.svoby93.asciistudio.ui.studio.TerminalFrame
@@ -54,6 +59,7 @@ import cz.svoby93.asciistudio.ui.theme.MonoFontFamily
  * app. On wide screens the two stand side by side.
  *
  * @param recentImage the image from the last session, offered as "continue editing".
+ * @param onSignature called when five taps turn the donut into the author's nickname.
  */
 @Composable
 fun HomeContent(
@@ -65,6 +71,8 @@ fun HomeContent(
     onContinueEditing: () -> Unit,
     onAbout: () -> Unit,
     modifier: Modifier = Modifier,
+    onSignature: () -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     val menu: @Composable () -> Unit = {
         HomeMenu(recentImage, galleryCount, onPickImage, onOpenCamera, onOpenGallery, onContinueEditing)
@@ -74,6 +82,7 @@ fun HomeContent(
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
+        val hero: @Composable (Modifier) -> Unit = { heroModifier -> HeroWindow(onSignature, heroModifier) }
         val landscape = maxWidth > maxHeight && maxWidth >= 480.dp
         Column(Modifier.fillMaxSize()) {
             StudioTopBar(
@@ -90,7 +99,7 @@ fun HomeContent(
                         .fillMaxSize()
                         .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 ) {
-                    HeroWindow(
+                    hero(
                         Modifier
                             .weight(1f)
                             .fillMaxHeight(),
@@ -117,7 +126,7 @@ fun HomeContent(
                         .verticalScroll(rememberScrollState())
                         .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
                 ) {
-                    HeroWindow(
+                    hero(
                         Modifier
                             .fillMaxWidth()
                             .aspectRatio(1.3f),
@@ -128,18 +137,19 @@ fun HomeContent(
                 }
             }
         }
+        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
 }
 
 @Composable
-private fun HeroWindow(modifier: Modifier) {
+private fun HeroWindow(onSignature: () -> Unit, modifier: Modifier) {
     val running = stringResource(R.string.home_hero_status)
     TerminalFrame(
         title = stringResource(R.string.home_hero_title),
-        status = { BlinkingDot(running) },
+        status = { BlinkingDot(running, morse = SignatureLight) },
         modifier = modifier,
     ) {
-        DonutHero(Modifier.fillMaxSize())
+        DonutHero(onSignature, Modifier.fillMaxSize())
     }
 }
 
@@ -279,3 +289,6 @@ private fun MenuItem(
 
 private val ItemShape = RoundedCornerShape(10.dp)
 private val ThumbnailShape = RoundedCornerShape(8.dp)
+
+/** The light in the border of the donut's window blinks the author's nickname. */
+private val SignatureLight = MorseLight(Signature.NAME)

@@ -17,6 +17,12 @@
     <string name="about_title">ASCII Studio %1$s</string>
     <string name="about_text">Turns photos into text art right on your device. Nothing is uploaded anywhere.\n\nFont: JetBrains Mono, SIL Open Font License 1.1\nIcons: Material Symbols, Apache License 2.0</string>
     <string name="action_close">Close</string>
+    <plurals name="developer_taps_left">
+        <item quantity="one">%d more tap</item>
+        <item quantity="other">%d more taps</item>
+    </plurals>
+    <string name="developer_mode_on">Developer mode on · SVOBY</string>
+    <string name="developer_mode_off">Developer mode off</string>
     <string name="action_privacy_policy">Privacy policy</string>
     <string name="privacy_policy_title">Privacy policy</string>
     <string name="privacy_policy_text">ASCII Studio does not collect, send or share any personal data. Photos are processed only on your device, and the app has no permission to access the internet.\n\nPhotos\nImages you pick or share with the app are turned into ASCII art right on your device. A copy of the image you edited last stays in the app\'s private storage, so that you can continue editing.\n\nCamera\nThe camera permission is used only for the live ASCII camera and for taking a photo or recording a video when you ask for it. Camera images are processed only on your device. A video contains only the ASCII art without sound, not the camera image, and is saved to the Movies folder.\n\nCollection\nASCII art you save to the collection stays in the app\'s private storage together with a reduced copy of its photo, until you delete it from the collection.\n\nSettings\nYour style settings are stored on your device and may be included in your Android backup if it is turned on. Images and the collection are not backed up.\n\nExport\nResults are saved or shared only where you choose. The storage permission is requested only on Android 9 and older, to save images and videos to the Pictures and Movies folders.\n\nThe app contains no ads, analytics or tracking and requires no account. You can delete all app data by uninstalling the app or by clearing its data in Android settings.\n\nThe developer\'s contact details are on the app\'s Google Play page.</string>
@@ -51,6 +57,7 @@
     <string name="settings_show">Show settings</string>
     <string name="settings_hide">Hide settings</string>
 
+    <string name="preset_signature" translatable="false">SVOBY</string>
     <string name="preset_classic">Classic</string>
     <string name="preset_matrix">Matrix</string>
     <string name="preset_newspaper">Newspaper</string>
@@ -110,6 +117,7 @@
     <string name="label_color_tiles">Color tiles</string>
     <string name="color_tiles_supporting">A muted tile in the photo\'s color behind every character</string>
     <string name="label_palette">Palette</string>
+    <string name="palette_signature" translatable="false">SVOBY</string>
     <string name="palette_terminal">Terminal</string>
     <string name="palette_amber">Amber</string>
     <string name="palette_night">Night</string>
@@ -164,6 +172,7 @@
     <string name="message_saved_file">File saved</string>
     <string name="message_export_failed">Export failed</string>
     <string name="message_storage_permission">Saving to Pictures needs the storage permission</string>
+    <string name="message_signature_unlocked">Hidden look SVOBY unlocked. Find it among the presets.</string>
     <string name="error_load_image">This image could not be opened.</string>
     <string name="error_no_image">There is no image to edit.</string>
     <string name="error_gallery_item">This ASCII art is no longer in the collection.</string>

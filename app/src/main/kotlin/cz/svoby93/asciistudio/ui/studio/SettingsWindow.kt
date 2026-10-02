@@ -45,9 +45,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cz.svoby93.asciistudio.R
+import cz.svoby93.asciistudio.data.ArtPalette
 import cz.svoby93.asciistudio.data.Backdrop
 import cz.svoby93.asciistudio.data.CharsetPreset
 import cz.svoby93.asciistudio.data.StudioSettings
+import cz.svoby93.asciistudio.data.offeredPalettes
 import cz.svoby93.asciistudio.ui.editor.ColorControls
 import cz.svoby93.asciistudio.ui.editor.PresetControls
 import cz.svoby93.asciistudio.ui.editor.PresetShelf
@@ -83,6 +85,7 @@ class HistoryActions(
  * @param history undo and redo, or null where the screen keeps no history.
  * @param charsets the character sets to offer, see [StyleControls].
  * @param columnsRange the widths to offer, see [StyleControls].
+ * @param palettes the palettes to offer, see [ColorControls].
  */
 @Composable
 fun SettingsWindow(
@@ -98,6 +101,7 @@ fun SettingsWindow(
     history: HistoryActions? = null,
     charsets: List<CharsetPreset> = CharsetPreset.entries,
     columnsRange: IntRange = StudioSettings.MIN_COLUMNS..StudioSettings.MAX_COLUMNS,
+    palettes: List<ArtPalette> = offeredPalettes(signatureLook = false),
 ) {
     val status: (@Composable RowScope.() -> Unit)? = if (onExpandedChange != null || history != null) {
         {
@@ -154,7 +158,7 @@ fun SettingsWindow(
                     when (tab) {
                         SettingsTab.PRESETS -> PresetControls(settings, onChange, presets)
                         SettingsTab.STYLE -> StyleControls(settings, onChange, charsets, columnsRange)
-                        SettingsTab.COLORS -> ColorControls(settings, onChange)
+                        SettingsTab.COLORS -> ColorControls(settings, onChange, palettes)
                         SettingsTab.TONE -> ToneControls(settings, onChange)
                         SettingsTab.BACKGROUND -> BackgroundControls(settings, onChange)
                     }

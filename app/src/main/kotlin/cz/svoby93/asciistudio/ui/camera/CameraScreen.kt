@@ -57,6 +57,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cz.svoby93.asciistudio.LocalAppContainer
 import cz.svoby93.asciistudio.R
+import cz.svoby93.asciistudio.data.offeredLooks
+import cz.svoby93.asciistudio.data.offeredPalettes
 import cz.svoby93.asciistudio.ui.editor.PresetShelf
 import cz.svoby93.asciistudio.ui.studio.LocalStudioColors
 import cz.svoby93.asciistudio.ui.studio.TerminalFrame
@@ -114,6 +116,7 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
             container.presetRepository,
             container.optionsFactory,
             container.exporter,
+            container.hiddenFeatures,
         )
     }
     val art by viewModel.art.collectAsStateWithLifecycle()
@@ -123,6 +126,9 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
     val userPresets by viewModel.userPresets.collectAsStateWithLifecycle()
     val thumbnail by viewModel.thumbnail.collectAsStateWithLifecycle()
     val recordingSince by viewModel.recordingSince.collectAsStateWithLifecycle()
+    val signatureLook by container.hiddenFeatures.signatureLook.collectAsStateWithLifecycle()
+    val developerMode by container.hiddenFeatures.developerMode.collectAsStateWithLifecycle()
+    val stats by viewModel.stats.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resources = LocalResources.current
     val view = LocalView.current
@@ -237,8 +243,11 @@ private fun LiveCamera(onBack: () -> Unit, onCaptured: () -> Unit) {
             thumbnail = thumbnail,
             onSave = viewModel::savePreset,
             onDelete = viewModel::deletePreset,
+            looks = offeredLooks(signatureLook),
         ),
         snackbarHostState = snackbarHostState,
+        palettes = offeredPalettes(signatureLook),
+        developerStats = stats?.takeIf { developerMode }?.lines().orEmpty(),
     )
 }
 

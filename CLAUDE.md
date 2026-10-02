@@ -32,6 +32,8 @@ the live camera image into ASCII art. The maintainer writes in Czech; answer in 
   the MP4 plays, printing its middle frame. The export steps check the size of a saved story
   picture, save PDF, SVG and HTML through the system file picker, and print those files gzipped
   and base64 encoded between `===== BEGIN FILE <name> =====` and `===== END FILE <name> =====`.
+  The easter egg steps switch the developer mode on in About (and off before the measurements),
+  type `svoby` as custom characters to unlock the hidden look, and tap the donut five times.
   Every step prints a base64 JPEG between `===== BEGIN IMAGE <name> =====` and
   `===== END IMAGE <name> =====` in the job log.
   Near the end it turns animations on and prints `===== FRAMES <name>: ... =====` lines: the
@@ -103,6 +105,8 @@ profile when the app does not come from Google Play.
     lets large changes through, keeps glyphs within a noise margin (`GlyphHold`), turns both off
     while the whole picture moves, and dithers with Bayer instead of error diffusion. Its
     constants were tuned on simulated streams with noise, exposure jitter, hand shake and pans.
+- `Donut` (donut.c) and `BlockLetters` (pixel letters as 3D blocks, lit the same way) draw the
+  start screen's hero frames as `AsciiArt`.
 - `CharRamp` stores each glyph with its measured ink coverage, so tone steps are uneven on
   purpose. Built-in ramps are in `CharRamps`. Custom characters are measured at runtime by the
   app's `GlyphMeasurer` in the bundled JetBrains Mono.
@@ -206,6 +210,19 @@ profile when the app does not come from Google Play.
     stops after 3 minutes, when the screen stops, or when the user leaves the camera.
   - `CameraScreen` handles the permission and camera binding, then renders the stateless
     `CameraContent`.
+- **Hidden features:** easter eggs with the author's nickname, listed in `Signature`. They stay
+  out of the README and the store listing on purpose.
+  - The light of the start screen blinks it in Morse code (`MorseLight`), About is signed in
+    Braille, and the rain background spells it in its first column about once a minute.
+  - Five quick taps on the donut play `SignatureShow` (the name in `BlockLetters`, two turns,
+    about 10 s) and unlock the look `StylePreset.SIGNATURE` with the palette
+    `ArtPalette.SIGNATURE`. Typing the letters of the name as custom characters unlocks them too.
+    `offeredLooks` and `offeredPalettes` leave them out until then.
+  - Seven taps on the version in About switch the developer mode: the camera shows frames a
+    second, conversion time and, while recording, the encoder (`LiveStats`); the editor shows
+    its conversion time.
+  - `HiddenFeatures` keeps both flags in the settings DataStore, but not in `StudioSettings`,
+    so gallery items and presets do not carry them.
 - **Navigation:** type-safe routes in `AsciiStudioNavHost`: `HomeRoute`,
   `EditorRoute(imageUri, galleryId)`, `GalleryRoute` and `CameraRoute`. Images shared from other
   apps reach the graph through a channel in `MainActivity`.

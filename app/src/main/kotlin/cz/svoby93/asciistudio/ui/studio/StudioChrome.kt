@@ -112,16 +112,27 @@ fun RoundButton(
     }
 }
 
-/** A dialog in a [TerminalFrame]: [content] scrolls when it is long, [buttons] stay at the bottom. */
+/**
+ * A dialog in a [TerminalFrame]: [content] scrolls when it is long, [buttons] stay at the bottom.
+ * [titleModifier] goes to the title in the border, see [TerminalFrame].
+ */
 @Composable
 fun TerminalDialog(
     title: String,
     onDismiss: () -> Unit,
     buttons: @Composable RowScope.() -> Unit,
+    modifier: Modifier = Modifier,
+    titleModifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Dialog(onDismissRequest = onDismiss) {
-        TerminalDialogWindow(title = title, buttons = buttons, content = content)
+        TerminalDialogWindow(
+            title = title,
+            buttons = buttons,
+            modifier = modifier,
+            titleModifier = titleModifier,
+            content = content,
+        )
     }
 }
 
@@ -131,6 +142,7 @@ fun TerminalDialogWindow(
     title: String,
     buttons: @Composable RowScope.() -> Unit,
     modifier: Modifier = Modifier,
+    titleModifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // The labels stick out of the window, over the scrim of the dialog.
@@ -138,6 +150,7 @@ fun TerminalDialogWindow(
         title = title,
         labelBackground = LocalStudioColors.current.desk,
         modifier = modifier.widthIn(max = 480.dp),
+        titleModifier = titleModifier,
     ) {
         Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 12.dp)) {
             Column(

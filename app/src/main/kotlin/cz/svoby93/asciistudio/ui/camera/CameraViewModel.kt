@@ -17,6 +17,7 @@ import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cz.svoby93.asciistudio.data.ArtExporter
+import cz.svoby93.asciistudio.data.HiddenFeatures
 import cz.svoby93.asciistudio.data.ImageRepository
 import cz.svoby93.asciistudio.data.PresetRepository
 import cz.svoby93.asciistudio.data.SettingsRepository
@@ -30,6 +31,8 @@ import cz.svoby93.asciistudio.render.ArtRecorder
 import cz.svoby93.asciistudio.render.AsciiOptionsFactory
 import cz.svoby93.asciistudio.render.LookPreviewer
 import cz.svoby93.asciistudio.render.artStyle
+import cz.svoby93.asciistudio.ui.studio.DeveloperStats
+import cz.svoby93.asciistudio.ui.studio.statsLine
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.max
@@ -57,6 +60,36 @@ sealed interface CameraEvent {
     data object VideoFailed : CameraEvent
 }
 
+/** How fast the live picture goes, shown in the developer mode. */
+data class LiveStats(
+    /** Frames converted in a second, and how long one took to read and convert on average. */
+    val framesPerSecond: Float,
+    val convertMillis: Float,
+    /** The encoder while a recording runs, and the frames it got in a second. */
+    val recorder: ArtRecorder.Info?,
+    val recordedPerSecond: Float,
+) {
+    /** The lines of [DeveloperStats]: the conversion, then the video while it records. */
+    fun lines(): List<String> = buildList {
+        add(statsLine("%.1f fps · %.1f ms", framesPerSecond, convertMillis))
+        if (recorder != null) {
+            val megabits = recorder.bitRate / BITS_PER_MEGABIT
+            val size = "${recorder.width}×${recorder.height}"
+            add(statsLine("REC %.1f fps · %s · %.1f Mb/s", recordedPerSecond, size, megabits))
+            val kind = when (recorder.hardware) {
+                true -> "HW"
+                false -> "SW"
+                null -> "?"
+            }
+            add("${recorder.name} · $kind")
+        }
+    }
+
+    private companion object {
+        const val BITS_PER_MEGABIT = 1_000_000f
+    }
+}
+
 /**
  * Owns the CameraX use cases: a low resolution analysis stream that is converted to ASCII art
  * on every frame, and a still capture for the photo that is then opened in the editor. The art of
@@ -68,6 +101,7 @@ class CameraViewModel(
     private val presetRepository: PresetRepository,
     private val optionsFactory: AsciiOptionsFactory,
     private val exporter: ArtExporter,
+    private val hiddenFeatures: HiddenFeatures,
 ) : ViewModel() {
 
     val settings: StateFlow<StudioSettings?> = settingsRepository.settings
@@ -102,6 +136,14 @@ class CameraViewModel(
 
     private val eventChannel = Channel<CameraEvent>(Channel.BUFFERED)
     val events: Flow<CameraEvent> = eventChannel.receiveAsFlow()
+
+    private val liveStats = MutableStateFlow<LiveStats?>(null)
+
+    /** Measured only in the developer mode, a few times a second; `null` until then. */
+    val stats: StateFlow<LiveStats?> = liveStats.asStateFlow()
+
+    /** Counts the frames for [stats], on the analysis thread only. */
+    private val meter = StatsMeter { liveStats.value = it }
 
     private val analysisExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 
@@ -159,6 +201,7 @@ class CameraViewModel(
     private fun analyze(image: ImageProxy) {
         image.use { frame ->
             val settings = settingsRepository.settings.value ?: return
+            val started = System.nanoTime()
             val columns = min(settings.columns, StudioSettings.MAX_LIVE_COLUMNS)
             val plane = frame.planes[0]
             val crop = frame.cropRect
@@ -175,8 +218,14 @@ class CameraViewModel(
                 maxSize = columns * SAMPLES_PER_COLUMN,
             )
             val art = converter.convert(picture, optionsFactory.create(settings, columns))
+            val converted = System.nanoTime()
             liveArt.value = art
             recording?.let { record(it, art, settings) }
+            if (hiddenFeatures.developerMode.value) {
+                meter.frame(converted, converted - started, recording?.recorder?.info)
+            } else {
+                meter.reset()
+            }
             val now = SystemClock.uptimeMillis()
             if (now - thumbnailTime >= THUMBNAIL_INTERVAL_MS) {
                 thumbnailTime = now
@@ -223,6 +272,7 @@ class CameraViewModel(
     private fun record(current: Recording, art: AsciiArt, settings: StudioSettings) {
         try {
             current.recorder.write(art, settings.artStyle())
+            meter.recorded()
         } catch (error: Exception) {
             Log.w(TAG, "Recording failed", error)
             recording = null
@@ -258,6 +308,38 @@ class CameraViewModel(
 
     private class Recording(val recorder: ArtRecorder, val video: VideoFile)
 
+    /** Adds up frames and their times, and hands on [LiveStats] about twice a second. */
+    private class StatsMeter(private val publish: (LiveStats) -> Unit) {
+        private var since = 0L
+        private var frames = 0
+        private var recorded = 0
+        private var convertNanos = 0L
+
+        fun frame(now: Long, nanos: Long, recorder: ArtRecorder.Info?) {
+            if (since == 0L) since = now
+            frames++
+            convertNanos += nanos
+            val elapsed = now - since
+            if (elapsed < STATS_INTERVAL_NANOS) return
+            val seconds = elapsed / NANOS_PER_SECOND
+            publish(LiveStats(frames / seconds, convertNanos / NANOS_PER_MILLI / frames, recorder, recorded / seconds))
+            reset()
+            since = now
+        }
+
+        fun recorded() {
+            recorded++
+        }
+
+        /** Starts counting afresh, e.g. after the developer mode was off for a while. */
+        fun reset() {
+            since = 0L
+            frames = 0
+            recorded = 0
+            convertNanos = 0L
+        }
+    }
+
     fun deletePreset(preset: UserPreset) = presetRepository.delete(preset.id)
 
     /** Rotates the photo upright, mirrors selfies and shrinks it to [maxSize] pixels. */
@@ -289,6 +371,10 @@ class CameraViewModel(
 
         /** Three minutes are plenty for a clip to share, and keep a video under 150 MB. */
         const val MAX_RECORDING_MS = 3 * 60 * 1_000L
+
+        const val STATS_INTERVAL_NANOS = 500_000_000L
+        const val NANOS_PER_SECOND = 1e9f
+        const val NANOS_PER_MILLI = 1e6f
 
         fun resolutionSelector(size: Size, fallbackRule: Int): ResolutionSelector = ResolutionSelector.Builder()
             .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)

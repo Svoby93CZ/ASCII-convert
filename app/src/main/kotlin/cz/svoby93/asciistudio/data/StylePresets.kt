@@ -2,6 +2,7 @@ package cz.svoby93.asciistudio.data
 
 import androidx.annotation.StringRes
 import cz.svoby93.asciistudio.R
+import cz.svoby93.asciistudio.Signature
 import cz.svoby93.asciistudio.engine.Dithering
 import cz.svoby93.asciistudio.engine.EdgeMode
 import kotlinx.serialization.Serializable
@@ -12,6 +13,20 @@ import kotlinx.serialization.Serializable
  * people, fruit and buildings, so that every look holds up on most pictures.
  */
 enum class StylePreset(@StringRes val label: Int, val look: StudioSettings) {
+    /**
+     * Drawn only with the letters of the author's nickname, in gold. Hidden until the user finds
+     * it, then offered first, see [offeredLooks].
+     */
+    SIGNATURE(
+        R.string.preset_signature,
+        StudioSettings(
+            charset = CharsetPreset.CUSTOM,
+            customChars = " " + Signature.NAME.lowercase() + Signature.NAME,
+            contrast = 0.25f,
+            sharpness = 0.4f,
+            palette = ArtPalette.SIGNATURE,
+        ),
+    ),
     CLASSIC(R.string.preset_classic, StudioSettings()),
     MATRIX(
         R.string.preset_matrix,
@@ -63,6 +78,17 @@ enum class StylePreset(@StringRes val label: Int, val look: StudioSettings) {
         ),
     ),
 }
+
+/** The built-in looks to offer; the look of the author's nickname only once it is unlocked. */
+fun offeredLooks(signatureLook: Boolean): List<StylePreset> =
+    if (signatureLook) StylePreset.entries else StylePreset.entries - StylePreset.SIGNATURE
+
+/**
+ * Whether [customChars] are the letters of the author's nickname, in any case and order: typing
+ * them as custom characters unlocks the look drawn with them.
+ */
+fun isSignature(customChars: String): Boolean =
+    customChars.filterNot { it.isWhitespace() }.lowercase().toSet() == Signature.NAME.lowercase().toSet()
 
 /** A look the user saved under a name of their own. */
 @Serializable
